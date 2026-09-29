@@ -1299,7 +1299,7 @@ html,body{background:#efebe8}
 .leaflet-tooltip.lb.sel{background:rgba(255,255,255,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);padding:4px 8px;border-radius:8px;text-shadow:none;font-weight:700;font-size:13px;box-shadow:0 2px 10px rgba(46,32,26,.18);z-index:10}
 .ov .num svg{width:17px;height:17px}
 @media (min-width:760px){#cards{top:calc(var(--topH,110px) - 22px);padding-top:32px;padding-bottom:10px}}
-@media (max-width:759px){#cards{padding-left:28px;padding-right:28px;scroll-padding:0 28px}#cards>.card2{flex:0 0 calc(100vw - 56px);width:calc(100vw - 56px);max-width:calc(100vw - 56px);min-width:0;box-sizing:border-box}#pop{left:28px;right:28px}}
+@media (max-width:759px){#cards{padding-left:16px;padding-right:16px;scroll-padding:0 16px}#cards>.card2{flex:0 0 calc(100vw - 32px);width:calc(100vw - 32px);max-width:calc(100vw - 32px);min-width:0;box-sizing:border-box}#pop{left:16px;right:16px}}
 .flt{display:grid;grid-template-columns:1fr 1fr;border-radius:12px;background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(46,32,26,.08)}
 .flt>div{padding:12px 12px 13px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .flt>div+div{border-left:1px solid rgba(46,32,26,.1)}
@@ -1325,7 +1325,7 @@ html,body{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .acts .btn{min-width:0}.acts .btn:not(.btn-icon){overflow:hidden}
 .acts .btn i{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .acts .btn .sl{display:none}
-@media (max-width:400px){.acts{gap:6px}.acts .btn{padding:10px 12px;font-size:13.5px}.acts .btn .ll{display:none}.acts .btn .sl{display:inline}#top h1{font-size:15px}}
+@media (max-width:400px){.acts{gap:6px}.acts .btn{padding:10px 12px;font-size:13.5px}}@media (max-width:370px){.acts .btn .ll{display:none}.acts .btn .sl{display:inline}#top h1{font-size:15px}}
 .flt small{white-space:normal;overflow:visible;text-overflow:clip}
 .dy.past::before{opacity:.35}
 .dy.now::before{background:var(--color-accent-500)!important;top:2px;height:16px;border-radius:3px;opacity:1}
@@ -1469,7 +1469,7 @@ html[data-theme=dark] .num.numc{background:color-mix(in srgb,var(--cc) 22%,trans
 .offi:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
 </style>
 <style id="v5">
-a.lgb{text-decoration:none;box-sizing:border-box}
+a.lgb{text-decoration:none;box-sizing:border-box}a.lgb,a.lgb:hover,a.lgb:active,a.lgb:visited{color:#fff}
 .offl.done{color:var(--color-neutral-600)}.offl.done em{color:var(--color-neutral-500)}.offl.done .ic{color:var(--color-neutral-500)}
 .offl{margin-top:-2px}
 @media (max-width:759px){#cards>.card2{min-height:var(--eqH,0px)}.card2.ov{justify-content:space-between}}
@@ -2056,10 +2056,10 @@ const goU=b=>{const q=b.h.m.match(/q=([-\d.]+),([-\d.]+)/);return 'https://www.g
 let ch=`<article class="card2 ov"><div class="chd"><div class="num">${svgI('pln','')}</div><div><div class="nm">Всё путешествие</div><div class="sub cleg"><span><i style="background:var(--c-rs)"></i>Сербия</span><span><i style="background:var(--c-ba)"></i>БиГ</span><span><i style="background:var(--c-me)"></i>Черногория</span></div><div class="wxl">${svgI('car')}<span><b>≈2650 км</b><small>9 баз на машине</small></span></div></div><div class="nts"><strong>22</strong>ночи</div></div>
 <div class="flt"><div><b>JU 131 <small>· пт 2.10</small></b><small>МСК 10:40 → БГД 12:45</small></div><div><b>JU 134 <small>· сб 24.10</small></b><small>БГД 18:40 → МСК 22:50</small></div></div>
 <button class="offl" id="offb">${svgI('dl')}<span>Сохранить карту для офлайна</span><em></em></button>
-<a class="lgb" href="${goU(B[0])}" target="_blank" rel="noopener">${svgI('car')}<span>В Белград</span><em>${B[0].leg.t} · ${B[0].leg.k}</em>${svgI('cr')}</a></article>`;
+<a class="lgb" href="${goU(B[0])}" target="_blank" rel="noopener">${svgI('car')}<span>Белград</span><em>${B[0].leg.t} · ${B[0].leg.k}</em>${svgI('cr')}</a></article>`;
 B.forEach((b,i)=>{ch+=`<article class="card2"><div class="chd"><div class="num numc" style="--cc:var(--c-${ctB(i)})">${i+1}</div><div><div class="nm">${b.n}</div><div class="sub">${b.c} · ${b.dt}</div><div class="wxl">${svgI('thr')}<span id="wx${i}"><b>${b.w}</b><small>${b.wn}</small></span></div></div><div class="nts"><strong>${b.ni}</strong>${nw(b.ni)}</div></div>
 <div class="dts">${b.days.map(d=>`<button class="dtc${d.d===TD0?' now':''}" data-day="${d.d}" aria-label="${d.d} · ${d.t} — на карте">${d.d.split('.')[0]}<small>${d.wd}</small></button>`).join('')}</div>
-<div class="acts"><button class="btn btn-primary" data-sh="${i}" data-t="pl">Места <span>${new Set(b.all.filter(s=>ownB(s,i)).map(s=>s[0])).size}</span></button><button class="btn btn-secondary" data-sh="${i}" data-t="days"><i class="ll">Расписание</i><i class="sl">План</i></button><button class="btn btn-secondary btn-icon" data-sh="${i}" data-t="home" aria-label="Жильё">${svgI('bed')}</button></div><button class="lgb" data-lg="${i+1}">${svgI('car')}<span>→ ${shortN(legB(i+1).n)}</span><em>${legB(i+1).leg.t} · ${legB(i+1).leg.k}</em>${svgI('cr')}</button></article>`;});
+<div class="acts"><button class="btn btn-primary" data-sh="${i}" data-t="pl">Места <span>${new Set(b.all.filter(s=>ownB(s,i)).map(s=>s[0])).size}</span></button><button class="btn btn-secondary" data-sh="${i}" data-t="days"><i class="ll">Расписание</i><i class="sl">План</i></button><button class="btn btn-secondary btn-icon" data-sh="${i}" data-t="home" aria-label="Жильё">${svgI('bed')}</button></div><button class="lgb" data-lg="${i+1}">${svgI('car')}<span>${shortN(legB(i+1).n)}</span><em>${legB(i+1).leg.t} · ${legB(i+1).leg.k}</em>${svgI('cr')}</button></article>`;});
 $('#cards').innerHTML=ch;
 const cards=$('#cards');
 if(window.ResizeObserver){const ro=new ResizeObserver(()=>{if(!WIDE())layout()});const obs=()=>{ro.disconnect();[...cards.children].forEach(c=>ro.observe(c))};new MutationObserver(obs).observe(cards,{childList:true});obs()}
