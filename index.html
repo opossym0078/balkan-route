@@ -1468,6 +1468,25 @@ html[data-theme=dark] .num.numc{background:color-mix(in srgb,var(--cc) 22%,trans
 .offi svg{width:15px;height:15px;display:block}.offi:hover{background:rgba(46,32,26,.07);color:var(--color-accent-700)}
 .offi:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
 </style>
+<style id="v5">
+a.lgb{text-decoration:none;box-sizing:border-box}
+.offl.done{color:var(--color-neutral-600)}.offl.done em{color:var(--color-neutral-500)}.offl.done .ic{color:var(--color-neutral-500)}
+.offl{margin-top:-2px}
+@media (max-width:759px){#cards>.card2{min-height:var(--eqH,0px)}.card2.ov{justify-content:space-between}}
+.leaflet-marker-icon .bm{background:var(--cc,var(--route));box-shadow:0 3px 10px color-mix(in srgb,var(--cc,var(--route)) 40%,transparent)}
+.leaflet-marker-icon .bm.on{background:color-mix(in srgb,var(--cc,var(--route)) 80%,#000)}
+.leaflet-marker-icon .sm{background:color-mix(in srgb,var(--cc,var(--route)) 14%,#fff);color:color-mix(in srgb,var(--cc,var(--route)) 72%,#000);box-shadow:inset 0 0 0 2px var(--cc,var(--route)),0 2px 6px rgba(46,32,26,.2)}
+html[data-theme=dark] .leaflet-marker-icon .sm{background:color-mix(in srgb,var(--cc,var(--route)) 24%,#1c1917);color:color-mix(in srgb,var(--cc,var(--route)) 80%,#fff);box-shadow:inset 0 0 0 2px var(--cc,var(--route)),0 2px 8px rgba(0,0,0,.5)}
+html[data-theme=dark] .leaflet-marker-icon .bm.on{background:color-mix(in srgb,var(--cc,var(--route)) 85%,#fff)}
+.leaflet-marker-icon .dn{border-color:var(--cc,var(--route))}
+.chk{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;margin:6px 0;padding:8px 8px 8px 10px;border-radius:12px;background:rgba(46,32,26,.05);font-size:13px;line-height:1.35;color:var(--color-neutral-900)}
+.chk>svg{width:16px;height:16px;color:var(--color-neutral-600)}
+.chk b{display:block;font-weight:700}.chk small{display:block;font-size:12px;color:var(--color-neutral-600)}
+.chk .btn{padding:7px 10px;font-size:13px;border:0;background:rgba(208,96,63,.11);color:var(--color-accent-800);white-space:nowrap;text-decoration:none;gap:4px}
+.chk .btn .ic{width:14px;height:14px;flex:0 0 14px;margin:0}
+html[data-theme=dark] .chk{background:rgba(255,255,255,.05)}
+html[data-theme=dark] .chk .btn{background:rgba(236,122,86,.14)}
+</style>
 </head>
 <body>
 
@@ -1863,8 +1882,9 @@ const map=L.map('map',{zoomControl:false,zoomSnap:.25,wheelPxPerZoomLevel:90}).s
   tl.on('tileload',()=>ok++).on('tileerror',e=>{err++;if(err>=4&&err>ok*2&&k<P.length-1)use(k+1);});tl.addTo(map)};
  window.setTiles=()=>{if(P)return;P=PL;use(0)};window.curTile=()=>({url:P[k][0],st:P[k][2]});setTiles();})();
 const lyrRoute=L.layerGroup().addTo(map),lyrSights=L.layerGroup().addTo(map),lyrBases=L.layerGroup().addTo(map);
+function eqH(){const c=$('#cards');if(!c)return;let off=true;try{off=WIDE()||!!DAY||!!LEGM}catch(e){}c.style.removeProperty('--eqH');if(off)return;const ks=[...c.children];if(ks.length<2)return;c.style.setProperty('--eqH',Math.max(...ks.map(x=>x.offsetHeight))+'px')}
 function curCardH(){const c=$('#cards');try{const el=(DAY||LEGM)?c.firstElementChild:(c.querySelector('.card2.cur')||c.firstElementChild);if(!el)return c.offsetHeight;const cs=getComputedStyle(c);return el.offsetHeight+parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom)}catch(e){return c.offsetHeight}}
-function layout(){const w=WIDE(),oh=$('#top').offsetHeight;SW=w?(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sw'))||400)+20:0;if(!oh)return;const th=oh+10;document.documentElement.style.setProperty('--topH',th+'px');topH=w?0:th;cardsH=w?0:curCardH();document.documentElement.style.setProperty('--cardsH',cardsH+'px');}
+function layout(){eqH();const w=WIDE(),oh=$('#top').offsetHeight;SW=w?(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sw'))||400)+20:0;if(!oh)return;const th=oh+10;document.documentElement.style.setProperty('--topH',th+'px');topH=w?0:th;cardsH=w?0:curCardH();document.documentElement.style.setProperty('--cardsH',cardsH+'px');}
 const dir={l:'left',r:'right',t:'top',b:'bottom'};
 function render(){
   if(DAY)return renderDay();
@@ -1878,8 +1898,8 @@ function render(){
   B.forEach((b,i)=>{const on=act===b;
     b.all.forEach((s,j)=>{const ll=[s[1],s[2]];
       if(on&&(i===0||(LEG?j<b.en.length:(j>=b.en.length||ownB(s,i))))){
-        if((j>=b.en.length||i===0)&&!LEG)L.polyline([b.ll,ll],{color:ACC4,weight:2,dashArray:'2 6',lineCap:'round',interactive:false}).addTo(lyrSights);
-        const m=L.marker(ll,{icon:L.divIcon({className:'',html:`<div class="sm">${svgI(s[3],'')}</div>`,iconSize:[28,28],iconAnchor:[14,14]}),zIndexOffset:500}).addTo(lyrSights);
+        if((j>=b.en.length||i===0)&&!LEG)L.polyline([b.ll,ll],{color:CC(ctP(s,i)),opacity:.5,weight:2,dashArray:'2 6',lineCap:'round',interactive:false}).addTo(lyrSights);
+        const m=L.marker(ll,{icon:L.divIcon({className:'',html:`<div class="sm" style="--cc:var(--c-${ctP(s,i)})">${svgI(s[3],'')}</div>`,iconSize:[28,28],iconAnchor:[14,14]}),zIndexOffset:500}).addTo(lyrSights);
         m.bindTooltip(nm(s[0]),{permanent:true,direction:'right',offset:[12,0],className:'lb ls'});
         m.on('click',e=>{L.DomEvent.stop(e);showPop(i,j)});
       }else{
@@ -1888,7 +1908,7 @@ function render(){
       }});});
   B.forEach((b,i)=>{if(i===8)return;const on=act===b||(i===0&&cur===9);
     const lab=i===0?'1·9':String(i+1),hh=on?32:26,w=hh+(i===0?14:0);
-    const m=L.marker(b.ll,{icon:L.divIcon({className:'',html:`<div class="bm${on?' on':''}" style="width:${w}px;height:${hh}px">${lab}</div>`,iconSize:[w,hh],iconAnchor:[w/2,hh/2]}),zIndexOffset:on?2000:1000}).addTo(lyrBases);
+    const m=L.marker(b.ll,{icon:L.divIcon({className:'',html:`<div class="bm${on?' on':''}" style="width:${w}px;height:${hh}px;--cc:var(--c-${ctB(i)})">${lab}</div>`,iconSize:[w,hh],iconAnchor:[w/2,hh/2]}),zIndexOffset:on?2000:1000}).addTo(lyrBases);
     const d=dir[b.lab]||'right',o=d==='left'?[-w/2-2,0]:d==='right'?[w/2+2,0]:d==='top'?[0,-hh/2]:[0,hh/2];
     m.bindTooltip(i===0?'Белград':b.n,{permanent:true,direction:d,offset:o,className:'lb lbase'+(on?' on':'')});BT.push({m,d,w,hh});
     m.on('click',e=>{L.DomEvent.stop(e);goCard(i===0&&cur===9?9:i+1)});});
@@ -1927,16 +1947,16 @@ function renderDay(){
   lyrRoute.clearLayers();lyrSights.clearLayers();lyrBases.clearLayers();BT=[];
   B.forEach(b=>{if(b.route.length)L.polyline(b.route,{color:GREY4,weight:2.5,opacity:.7,interactive:false}).addTo(lyrRoute)});
   const st=stopsOf(DAY),r=DAYR[DAY];
-  if(DAYPLAN[DAY].walk===1)L.polyline(st.map(s=>s.ll),{color:ACC4,weight:2,dashArray:'2 6',lineCap:'round',interactive:false}).addTo(lyrRoute);
+  if(DAYPLAN[DAY].walk===1)L.polyline(st.map(s=>s.ll),{color:CC(ctB(DAYPLAN[DAY].b)),opacity:.5,weight:2,dashArray:'2 6',lineCap:'round',interactive:false}).addTo(lyrRoute);
   if(r&&r.c.length){DRAW([L.polyline(r.c,{color:CAS(),weight:10,interactive:false,lineJoin:'round'}).addTo(lyrRoute),...segC(r.c).map(s=>L.polyline(s.p,{color:CC(s.c),weight:5.5,interactive:false,lineJoin:'round'}).addTo(lyrRoute))]);}
-  if(r&&r.c.length)st.forEach(s=>{if(s.base!=null||s.air)return;let bd=1e9,bp=null;for(const p of r.c){const d=hv(p,s.ll);if(d<bd){bd=d;bp=p}}if(bd>.25)L.polyline([bp,s.ll],{color:ACC,weight:3,dashArray:'2 7',lineCap:'round',interactive:false}).addTo(lyrRoute)});
+  if(r&&r.c.length)st.forEach(s=>{if(s.base!=null||s.air)return;let bd=1e9,bp=null;for(const p of r.c){const d=hv(p,s.ll);if(d<bd){bd=d;bp=p}}if(bd>.25)L.polyline([bp,s.ll],{color:CC(ctOf(s.ll)||ctB(DAYPLAN[DAY].b)),opacity:.5,weight:3,dashArray:'2 7',lineCap:'round',interactive:false}).addTo(lyrRoute)});
   let n=0;const seen=new Set();
   st.forEach(s=>{
     if(s.base!=null){if(seen.has(s.base))return;seen.add(s.base);const lab=s.base===0||s.base===8?'1·9':String(s.base+1),hh=28,w=hh+(lab.length>1?14:0);
-      const m=L.marker(s.ll,{icon:L.divIcon({className:'',html:`<div class="bm on" style="width:${w}px;height:${hh}px">${lab}</div>`,iconSize:[w,hh],iconAnchor:[w/2,hh/2]}),zIndexOffset:2000}).addTo(lyrBases);
+      const m=L.marker(s.ll,{icon:L.divIcon({className:'',html:`<div class="bm on" style="width:${w}px;height:${hh}px;--cc:var(--c-${ctB(s.base)})">${lab}</div>`,iconSize:[w,hh],iconAnchor:[w/2,hh/2]}),zIndexOffset:2000}).addTo(lyrBases);
       m.bindTooltip(s.base===8?'Белград':s.n,{permanent:true,direction:'right',offset:[w/2+2,0],className:'lb lbase on'});BT.push({m,d:'right',w,hh});return;}
     if(s.air){L.marker(s.ll,{icon:L.divIcon({className:'',html:`<div class="sm">${svgI('pln','')}</div>`,iconSize:[28,28],iconAnchor:[14,14]})}).addTo(lyrSights).bindTooltip('Аэропорт',{permanent:true,direction:'right',offset:[12,0],className:'lb ls'});return;}
-    n++;const m=L.marker(s.ll,{icon:L.divIcon({className:'',html:`<div class="dn"></div>`,iconSize:[16,16],iconAnchor:[8,8]}),zIndexOffset:1000-n}).addTo(lyrSights);
+    n++;const m=L.marker(s.ll,{icon:L.divIcon({className:'',html:`<div class="dn" style="--cc:var(--c-${ctOf(s.ll)||ctB(DAYPLAN[DAY].b)})"></div>`,iconSize:[16,16],iconAnchor:[8,8]}),zIndexOffset:1000-n}).addTo(lyrSights);
     m.bindTooltip(nm(s.n),{permanent:true,direction:'right',offset:[10,0],className:'lb ls'});
     m.on('click',e=>{L.DomEvent.stop(e);showPop(s.bi,s.si)});});
   requestAnimationFrame(declutter);
@@ -1950,9 +1970,10 @@ function dayCard(k){const p=DAYPLAN[k],b=B[p.b],d=b.days.find(x=>x.d===k),r=DAYR
   const wic=f?WIc(f.w):svgI('thr');
   const wx=f?`<b class="v">${f.mx}° / ${f.mn}°</b><small>прогноз</small>`:`<b class="v">${b.w}</b><small>норма</small>`;
   const wxd=WXERR?`<i class="wxd" title="Нет сети${f?' · прогноз от '+dtf(WX.t):''}" aria-label="нет сети"></i>`:'';
+  const ix0=SEQ.findIndex(x=>x.d===k),last=ix0===SEQ.length-1;
   return `<article class="card2"><div class="chd"><div class="num numc" style="--cc:var(--c-${ctB(p.b)})">${dd}</div><div><div class="nm one">${d.t}</div><div class="sub one">${d.wd}, ${dd} <i class="mf">октября</i><i class="ms">окт</i> · ${k==='24.10'?'вылет в 18:40':'ночь: '+shortN(b.n)}</div></div><button class="x" data-xday aria-label="К базе">${svgI('x','')}</button></div>
 <div class="row dr2"><div>${svgI('car')}<span>${drv}</span></div><div>${wic}<span>${wx}</span>${wxd}</div></div>${elvHtml(k,p.walk===1)}
-<div class="acts"><button class="btn btn-primary" data-dsh="${k}" data-t="pl">Места <span>${cnt}</span></button><button class="btn btn-secondary" data-dsh="${k}" data-t="days"><i class="ll">Расписание</i><i class="sl">План</i></button><button class="btn btn-secondary btn-icon" data-seq="${SEQ.findIndex(x=>x.d===k)-1}" ${SEQ.findIndex(x=>x.d===k)>0?'':'disabled'} aria-label="Назад"${k==='24.10'?' style="flex:0 0 80px;border-radius:999px"':''}>${svgI('cl')}</button>${k==='24.10'?'':`<button class="btn btn-secondary btn-icon" data-seq="${SEQ.findIndex(x=>x.d===k)+1}" ${SEQ.findIndex(x=>x.d===k)<SEQ.length-1?'':'disabled'} aria-label="Дальше">${svgI('cr')}</button>`}</div></article>`}
+<div class="acts"><button class="btn btn-primary" data-dsh="${k}" data-t="pl">Места <span>${cnt}</span></button><button class="btn btn-secondary" data-dsh="${k}" data-t="days"><i class="ll">Расписание</i><i class="sl">План</i></button>${ix0>0?`<button class="btn btn-secondary btn-icon" data-seq="${ix0-1}" aria-label="Назад"${last?' style="flex:0 0 80px;border-radius:999px"':''}>${svgI('cl')}</button>`:''}${last?'':`<button class="btn btn-secondary btn-icon" data-seq="${ix0+1}" aria-label="Дальше"${ix0===0?' style="flex:0 0 80px;border-radius:999px"':''}>${svgI('cr')}</button>`}</div></article>`}
 function markStrip(){document.querySelectorAll('.dy').forEach(e=>e.classList.toggle('sel',e.dataset.d===DAY))}
 function selectDay(k,anim=true){if(!DAYPLAN[k])return;DAY=k;LEGM=null;cur=DAYPLAN[k].b+1;hidePop();closeSheet();
   document.querySelectorAll('.sg').forEach((e,j)=>e.classList.toggle('on',j===cur-1));markStrip();
@@ -1986,7 +2007,8 @@ function focus(i,anim=true,leg=false){
 }
 
 const TD0=(()=>{const q=new URLSearchParams(location.search).get('today');const n=q?new Date(q+'T12:00'):new Date();return n.getFullYear()===2026&&n.getMonth()===9?n.getDate()+'.10':null})();
-const TDn=TD0?+TD0.split('.')[0]:0;function ctB(i){return ctOf(B[i].ll)||'rs'}
+const TDn=TD0?+TD0.split('.')[0]:0;function ctP(s,i){return ctOf([s[1],s[2]])||ctB(i)}
+function ctB(i){return ctOf(B[i].ll)||'rs'}
 function isPast(k){return !!TDn&&+String(k).split('.')[0]<TDn}
 // strip
 $('#strip').innerHTML=B.map((b,i)=>`<div class="sg" style="--n:${b.days.length}" data-i="${i+1}">${b.days.map(d=>`<button class="dy${isPast(d.d)?' past':''}${d.d===TD0?' now':''}" data-d="${d.d}" aria-label="${d.d} · ${d.t}"></button>`).join('')}<small>${b.days[0].d.split('.')[0]}</small></div>`).join('');
@@ -2030,9 +2052,11 @@ function toB(i){const b=legB(i),q=b.h&&(b.h.m.match(/q=([-\d.]+),([-\d.]+)/)||[]
 function legNav(i){{const p=SEQ.findIndex(x=>x.l===i);return `<button class="btn btn-secondary btn-icon" data-seq="${p-1}" ${p>0?'':'disabled'} aria-label="Предыдущий день">${svgI('cl')}</button><button class="btn btn-secondary btn-icon" data-seq="${p+1}" ${p<SEQ.length-1?'':'disabled'} aria-label="Следующий день">${svgI('cr')}</button>`}
   return `<button class="btn btn-secondary btn-icon" data-lg="${i-1}" ${i>1?'':'disabled'} aria-label="Предыдущий перегон">${svgI('cl')}</button><button class="btn btn-secondary btn-icon" data-lg="${i+1}" ${i<B.length-1?'':'disabled'} aria-label="Следующий перегон">${svgI('cr')}</button>`}
 const navBtns=i=>`<button class="btn btn-secondary btn-icon" data-go="${i-1}" ${i===0?'disabled':''} aria-label="Назад">${svgI('cl')}</button><button class="btn btn-secondary btn-icon" data-go="${i+1}" ${i===CARD.length-1?'disabled':''} aria-label="Дальше">${svgI('cr')}</button>`;
-let ch=`<article class="card2 ov"><div class="chd"><div class="num">${svgI('pln','')}</div><div><div class="nm">Всё путешествие<button class="offi" id="offi" hidden aria-label="Карта сохранена офлайн — обновить" title="Карта сохранена офлайн · обновить">${svgI('dl','')}</button></div><div class="sub cleg"><span><i style="background:var(--c-rs)"></i>Сербия</span><span><i style="background:var(--c-ba)"></i>БиГ</span><span><i style="background:var(--c-me)"></i>Черногория</span></div><div class="wxl">${svgI('car')}<span><b>≈2650 км</b><small>9 баз на машине</small></span></div></div><div class="nts"><strong>22</strong>ночи</div></div>
+const goU=b=>{const q=b.h.m.match(/q=([-\d.]+),([-\d.]+)/);return 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+(q?q[1]+','+q[2]:b.ll.join(','))};
+let ch=`<article class="card2 ov"><div class="chd"><div class="num">${svgI('pln','')}</div><div><div class="nm">Всё путешествие</div><div class="sub cleg"><span><i style="background:var(--c-rs)"></i>Сербия</span><span><i style="background:var(--c-ba)"></i>БиГ</span><span><i style="background:var(--c-me)"></i>Черногория</span></div><div class="wxl">${svgI('car')}<span><b>≈2650 км</b><small>9 баз на машине</small></span></div></div><div class="nts"><strong>22</strong>ночи</div></div>
 <div class="flt"><div><b>JU 131 <small>· пт 2.10</small></b><small>МСК 10:40 → БГД 12:45</small></div><div><b>JU 134 <small>· сб 24.10</small></b><small>БГД 18:40 → МСК 22:50</small></div></div>
-<div class="acts"><button class="btn btn-primary" data-go="1"><i class="ll">Начать с Белграда</i><i class="sl">Начать</i></button>${goLink(B[0])}</div><button class="offl" id="offb">${svgI('dl')}<span>Сохранить карту офлайн</span><em></em></button></article>`;
+<button class="offl" id="offb">${svgI('dl')}<span>Сохранить карту для офлайна</span><em></em></button>
+<a class="lgb" href="${goU(B[0])}" target="_blank" rel="noopener">${svgI('car')}<span>В Белград</span><em>${B[0].leg.t} · ${B[0].leg.k}</em>${svgI('cr')}</a></article>`;
 B.forEach((b,i)=>{ch+=`<article class="card2"><div class="chd"><div class="num numc" style="--cc:var(--c-${ctB(i)})">${i+1}</div><div><div class="nm">${b.n}</div><div class="sub">${b.c} · ${b.dt}</div><div class="wxl">${svgI('thr')}<span id="wx${i}"><b>${b.w}</b><small>${b.wn}</small></span></div></div><div class="nts"><strong>${b.ni}</strong>${nw(b.ni)}</div></div>
 <div class="dts">${b.days.map(d=>`<button class="dtc${d.d===TD0?' now':''}" data-day="${d.d}" aria-label="${d.d} · ${d.t} — на карте">${d.d.split('.')[0]}<small>${d.wd}</small></button>`).join('')}</div>
 <div class="acts"><button class="btn btn-primary" data-sh="${i}" data-t="pl">Места <span>${new Set(b.all.filter(s=>ownB(s,i)).map(s=>s[0])).size}</span></button><button class="btn btn-secondary" data-sh="${i}" data-t="days"><i class="ll">Расписание</i><i class="sl">План</i></button><button class="btn btn-secondary btn-icon" data-sh="${i}" data-t="home" aria-label="Жильё">${svgI('bed')}</button></div><button class="lgb" data-lg="${i+1}">${svgI('car')}<span>→ ${shortN(legB(i+1).n)}</span><em>${legB(i+1).leg.t} · ${legB(i+1).leg.k}</em>${svgI('cr')}</button></article>`;});
@@ -2044,7 +2068,7 @@ function goCard(i,leg=false){leg=!!leg&&i>1;if(leg){openLeg(i-1);return}if(DAY){
 let st;cards.addEventListener('scroll',()=>{if(DAY||LEGM||WIDE())return;clearTimeout(st);st=setTimeout(()=>{if(DAY||LEGM)return;
   const mid=cards.scrollLeft+cards.clientWidth/2;let best=0,bd=1e9;[...cards.children].forEach((c,j)=>{const d=Math.abs(c.offsetLeft+c.offsetWidth/2-mid);if(d<bd){bd=d;best=j}});
   const x=CARD[best];if(x.c!==cur||x.l!==LEG)focus(x.c,true,x.l);},90)});
-cards.onclick=e=>{if(e.target.closest('#offb,#offi')){window.offToggle&&offToggle();return}if(WIDE()&&!DAY&&!LEGM){const a=e.target.closest('.card2'),x=a&&CARD[[...cards.children].indexOf(a)];if(x&&x.c!==cur&&!e.target.closest('[data-go],[data-lg],a'))focus(x.c,true,false)}
+cards.onclick=e=>{if(e.target.closest('#offb')){window.offToggle&&offToggle();return}if(WIDE()&&!DAY&&!LEGM){const a=e.target.closest('.card2'),x=a&&CARD[[...cards.children].indexOf(a)];if(x&&x.c!==cur&&!e.target.closest('[data-go],[data-lg],a'))focus(x.c,true,false)}
   const g=e.target.closest('[data-go]');if(g){const x=CARD[+g.dataset.go];goCard(x.c,x.l);return}
   const dy=e.target.closest('[data-day]');if(dy){if(dy.dataset.day)selectDay(dy.dataset.day);return}
   if(e.target.closest('[data-xday]')){exitDay(DAYPLAN[DAY].b+1);return}
@@ -2084,7 +2108,7 @@ map.on('click',closePop);
 const sheet=$('#sheet');let sb=0,stab='pl',SLEG=0,SDAY=null;
 function openSheet(i,tab,dk){sb=i;stab=tab;SDAY=dk||null;const b=B[i];
   if(SLEG===1)stab='pl';
-  $('#tabs').style.display=SLEG===1?'none':'';
+  $('#tabs').style.display=SLEG===1?'none':'';$('#tabs [data-t=home]').style.display=dk?'none':'';if(dk&&stab==='home')stab='days';
   const dd=SDAY&&b.days.find(x=>x.d===SDAY);
   $('#shd').innerHTML=(SLEG===1?`<div class="num">${svgI('car','')}</div><div><div class="nm">${B[i-1].n} → ${b.n}</div><div class="sub">перегон · ${b.days[0].wd}, ${b.days[0].d} · ${b.leg.t} · ${b.leg.k}</div></div>`
     :dd?`<div class="num">${SDAY.split('.')[0]}</div><div><div class="nm">${dd.t}</div><div class="sub">${dd.wd}, ${SDAY.split('.')[0]} октября · база ${b.n}</div></div>`
@@ -2112,7 +2136,9 @@ function sRow(r,bi){let tx=r[1],tag='';if(r[2]){const m=tx.match(/\s*·\s*((?:[�
   return `<div class="sr${r[2]?' dr':''}"><b>${r[0]}</b><span>${r[2]?`<i class="cr">${svgI('car','')}</i>`:''}${chipify(tx,bi)}${tag}</span></div>`}
 function sDay(bi,d){const mv=d.mv,ttl=mv?d.t.replace(/^→\s*/,''):d.t,b=B[bi];
   const sub=d.d==='24.10'?'вылет JU 134 в 18:40':mv?'переезд · ночь: '+b.n:'база: '+b.n;
-  return `<div class="sd${d.d===TODAY?' today':''}" data-d="${d.d}"><div class="sdh"><div class="sdd"><b>${d.d.split('.')[0]}</b><small>${d.wd}</small></div><div class="sdt"><h4>${ttl}</h4><small>${sub}</small></div>${d.d===TODAY?'<span class="tdy">сегодня</span>':''}</div>${dayWx(bi,d.d)}${d.r.map(r=>sRow(r,bi)).join('')}${d.n?`<div class="sn"><b>Важно</b><span>${lnk(d.n)}</span></div>`:''}</div>`}
+  return `<div class="sd${d.d===TODAY?' today':''}" data-d="${d.d}"><div class="sdh"><div class="sdd"><b>${d.d.split('.')[0]}</b><small>${d.wd}</small></div><div class="sdt"><h4>${ttl}</h4><small>${sub}</small></div>${d.d===TODAY?'<span class="tdy">сегодня</span>':''}</div>${dayWx(bi,d.d)}${d.r.map(r=>sRow(r,bi)).join('')}${d.n?`<div class="sn"><b>Важно</b><span>${lnk(d.n)}</span></div>`:''}${MVD.has(d.d)?chkIn(b):''}</div>`}
+const MVD=new Set(['3.10','5.10','7.10','9.10','13.10','18.10','21.10','23.10']);
+function chkIn(b){const o=b.h;if(!o)return '';const io=String(o.io).split(' / ')[0];return `<div class="chk">${svgI('bed','')}<div><b>${o.n}</b><small>заезд ${io}${o.p?' · парковка: '+o.p:''}</small></div><a class="btn btn-secondary" href="${o.m}" target="_blank" rel="noopener">${svgI('pin')}На карте</a></div>`}
 function renderTab(){const b=B[sb];document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x.dataset.t===stab));
   let h='';
   if(SDAY){const dd=b.days.find(x=>x.d===SDAY);
@@ -2141,7 +2167,7 @@ function closeSheet(){sheet.style.transition='';sheet.style.transform='';sheet.c
   sbd.addEventListener('touchstart',e=>{x0=e.touches[0].clientX;y0=e.touches[0].clientY;lock=null},{passive:true});
   sbd.addEventListener('touchmove',e=>{if(lock)return;const dx=e.touches[0].clientX-x0,dy=e.touches[0].clientY-y0;if(Math.abs(dx)>10||Math.abs(dy)>10)lock=Math.abs(dx)>Math.abs(dy)*1.3?'x':'y'},{passive:true});
   sbd.addEventListener('touchend',e=>{if(lock!=='x')return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)<50)return;
-    if(SLEG===1)return;const k=TABS.indexOf(stab)+(dx<0?1:-1);if(k<0||k>=TABS.length)return;stab=TABS[k];renderTab();
+    if(SLEG===1)return;const T=SDAY?TABS.slice(0,2):TABS,k=T.indexOf(stab)+(dx<0?1:-1);if(k<0||k>=T.length)return;stab=T[k];renderTab();
     sbd.animate([{transform:`translateX(${dx<0?40:-40}px)`,opacity:.3},{transform:'none',opacity:1}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'});});
   let sy,sx,dyv=0,drag=0;
   sheet.addEventListener('touchstart',e=>{if(WIDE()){drag=0;return}const t=e.touches[0];sy=t.clientY;sx=t.clientX;dyv=0;
@@ -2201,7 +2227,7 @@ async function loadWx(){
 addEventListener('online',()=>{WXERR=false;loadWx()});
 function wSwipe(el,fn){let acc=0,lock=0,tm;el.addEventListener('wheel',e=>{if(e.ctrlKey||Math.abs(e.deltaX)<=Math.abs(e.deltaY))return;e.preventDefault();if(Date.now()<lock)return;acc+=e.deltaX;clearTimeout(tm);tm=setTimeout(()=>acc=0,200);if(Math.abs(acc)>70){const d=acc>0?1:-1;acc=0;lock=Date.now()+700;fn(d)}},{passive:false})}
 wSwipe(cards,d=>{if(DAY){if(stepSeq(d))cards.firstElementChild.animate([{transform:`translateX(${d>0?40:-40}px)`,opacity:.4},{transform:'none',opacity:1}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'})}else if(LEGM){const n=LEGM+d;if(n>=1&&n<=B.length)openLeg(n)}else if(!WIDE()){const j=Math.max(0,Math.min(CARD.length-1,CARD.findIndex(x=>x.c===cur)+d));goCard(CARD[j].c)}});
-wSwipe($('#sbody'),d=>{if(SLEG===1)return;const k=TABS.indexOf(stab)+d;if(k<0||k>=TABS.length)return;stab=TABS[k];renderTab();$('#sbody').animate([{transform:`translateX(${d>0?40:-40}px)`,opacity:.3},{transform:'none',opacity:1}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'})});
+wSwipe($('#sbody'),d=>{if(SLEG===1)return;const T=SDAY?TABS.slice(0,2):TABS,k=T.indexOf(stab)+d;if(k<0||k>=T.length)return;stab=T[k];renderTab();$('#sbody').animate([{transform:`translateX(${d>0?40:-40}px)`,opacity:.3},{transform:'none',opacity:1}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'})});
 if(window.ResizeObserver){let lw=null;new ResizeObserver(()=>{const w=$('#top').offsetWidth+'x'+$('#top').offsetHeight;if(w===lw)return;const first=lw===null;lw=w;layout();if(!first){map.invalidateSize();DAY?selectDay(DAY,false):LEGM?openLeg(LEGM,false,LEGD):focus(cur,false,LEG)}}).observe($('#top'))}
 ['pageshow','visibilitychange'].forEach(ev=>addEventListener(ev,()=>{if(!document.hidden)layout()}));
 addEventListener('load',()=>{layout();map.invalidateSize();if(!DAY&&!LEGM&&!sheet.classList.contains('on'))focus(cur,false,LEG)});
@@ -2296,9 +2322,9 @@ function tileList(){if(LIST)return LIST;const S=new Set(),add=(z,x,y)=>S.add(z+'
   for(const z of [14,15])pts.forEach(p=>box(p[0],p[1],1.2,z));
   return LIST=[...S]}
 function updOff(){const el=document.getElementById('offb'),oi=document.getElementById('offi');if(!el)return;const sp=el.querySelector('span'),em=el.querySelector('em'),n=tileList().length;let sv=null;try{sv=JSON.parse(ls('balk_off')||'null')}catch(e){}
-  el.hidden=false;if(oi)oi.hidden=true;if(RUN){el.style.setProperty('--p',(done/n*100).toFixed(1)+'%');sp.textContent=`Сохраняю карту… ${Math.floor(done/n*100)}%`;em.textContent=mb(bytes);return}
+  el.classList.remove('done');if(RUN){el.style.setProperty('--p',(done/n*100).toFixed(1)+'%');sp.textContent=`Сохраняю… ${Math.floor(done/n*100)}%`;em.textContent=mb(bytes);return}
   el.style.setProperty('--p',sv&&sv.full?'0%':sv?(sv.done/sv.n*100).toFixed(1)+'%':'0%');
-  if(sv&&sv.full){el.hidden=true;if(oi)oi.hidden=false;sp.textContent='Карта сохранена офлайн';em.textContent=`${mb(sv.b)}${sv.fail?` · ${sv.fail} ошиб.`:''}`}
+  if(sv&&sv.full){el.classList.add('done');sp.textContent='✓ Карта сохранена';em.textContent=`${mb(sv.b)}${sv.fail?` · ${sv.fail} ошиб.`:''}`}
   else if(sv){sp.textContent='Пауза · продолжить сохранение';em.textContent=`${Math.floor(sv.done/sv.n*100)}%`}
   else{sp.textContent='Сохранить карту для офлайна';em.textContent=`~${Math.round(n*18/1024)} МБ`}}
 window.offToggle=async()=>{if(RUN){RUN=false;return}
