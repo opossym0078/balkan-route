@@ -1,5 +1,5 @@
 // Балканы · офлайн-режим
-const V='balk-shell-v1',RT='tiles-rt',PRE='tiles-pre',MAX=7500;
+const V='balk-shell-v2',RT='tiles-rt',PRE='tiles-pre',MAX=7500;
 const SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-180.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('balk-shell')&&k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
