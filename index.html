@@ -1671,7 +1671,7 @@ const DAYPLAN={
  const NEW=[['Форте Маре',42.4508,18.5349,'cas','13.10','пешком от Канли Кулы','морская крепость Херцег-Нови','FrSHea8fnr4wCuCq7'],
  ['Горни Столив',42.4845,18.7340,'eye','14.10','по пути вдоль бухты','старая деревня над заливом','wfCK1vprZXcizxVf9'],
  ['Крепость Горажда',42.4025,18.7700,'cas','14.10','у серпантина на Ловчен','австрийский форт, вид на бухту','78teMBuNDUhrSjK47'],
- ['Канатка: верхняя станция',42.3930,18.8150,'eye','14.10','канаткой из Дуба','смотровая наверху','t3XTtVVeSDLrbLZc8'],
+ ['Канатка: верхняя станция',42.39289,18.79275,'eye','14.10','канаткой из Дуба','смотровая наверху','t3XTtVVeSDLrbLZc8'],
  ['Стировник',42.3963,18.8390,'eye','15.10','рядом с мавзолеем','высшая точка Ловчена','1mysgN1vgC1oEJkj7'],
  ['Цетинский монастырь',42.3885,18.9245,'chu','15.10','пешком в Цетине','','FH97xnJJkhxRGtUa6'],
  ['Влашская церковь',42.3920,18.9175,'chu','15.10','пешком в Цетине','ограда из стволов ружей','jPgVbLZPxUK61XYy7'],
@@ -1835,7 +1835,7 @@ function dayCard(k){const p=DAYPLAN[k],b=B[p.b],d=b.days.find(x=>x.d===k),r=DAYR
   const cnt=stopsOf(k).filter(s=>s.s).length;
   const drv=p.walk===1?`<b>без машины</b><small>пешком по городу · ${cnt} ${plw(cnt)}</small>`:p.walk===2?`<b>≈ ${r.km} км</b><small>до причала, дальше катер и пешком</small>`:`<b>≈ ${r.km} км за день</b><small>≈ ${dur(r)} за рулём</small>`;
   const f=WX&&fmtD(WX.b[p.b],iso(k)),m=WX&&MT[p.b]&&fmtD(WX.m[p.b],iso(k));
-  const wx=f?`<b>${f.mx}° / ${f.mn}° · ${f.c}</b><small>${f.p!=null?`осадки ${f.p} · `:''}${m?`в горах ${m.mx}°/${m.mn}° · `:''}прогноз</small>`:`<b>${b.w}</b><small>норма · ${WXERR?'прогноз не загрузился — нет связи с сервисом':WX?'прогноз появится ближе к дате':'загружаю прогноз…'}</small>`;
+  const wx=f?`<b>${f.mx}° / ${f.mn}°${WI(f.w)}</b><b style="display:block">${f.c}</b>${(f.p!=null||m)?`<small>${[f.p!=null?`осадки ${f.p}`:'',m?`в горах ${m.mx}°/${m.mn}°`:''].filter(Boolean).join(' · ')}</small>`:''}`:`<b>${b.w}</b><small>норма · ${WXERR?'прогноз не загрузился — нет связи с сервисом':WX?'прогноз появится ближе к дате':'загружаю прогноз…'}</small>`;
   return `<article class="card2"><div class="chd"><div class="num">${dd}</div><div><div class="nm">${d.t}</div><div class="sub">${d.wd}, ${dd} октября · ${k==='24.10'?'вылет в 18:40':'ночь: '+b.n}</div></div><button class="x" data-xday aria-label="К базе">${svgI('x','')}</button></div>
 <div class="row"><div>${svgI('car')}<span>${drv}</span></div><div>${svgI('thr')}<span>${wx}</span></div></div>
 <div class="acts"><button class="btn btn-primary" data-dsh="${k}" data-t="pl">Места <span>${cnt}</span></button><button class="btn btn-secondary" data-dsh="${k}" data-t="days">Расписание</button><button class="btn btn-secondary btn-icon" data-seq="${SEQ.findIndex(x=>x.d===k)-1}" ${SEQ.findIndex(x=>x.d===k)>0?'':'disabled'} aria-label="Назад"${k==='24.10'?' style="flex:0 0 80px;border-radius:999px"':''}>${svgI('cl')}</button>${k==='24.10'?'':`<button class="btn btn-secondary btn-icon" data-seq="${SEQ.findIndex(x=>x.d===k)+1}" ${SEQ.findIndex(x=>x.d===k)<SEQ.length-1?'':'disabled'} aria-label="Дальше">${svgI('cr')}</button>`}</div></article>`}
@@ -2027,7 +2027,9 @@ const now=qd?new Date(qd+'T12:00'):new Date();
 const TODAY=now.getFullYear()===2026&&now.getMonth()===9?`${now.getDate()}.10`:null;
 let WX=null,WXERR=false;
 function fmtD(x,k){if(!x||!x.daily)return null;const j=x.daily.time.indexOf(k);if(j<0)return null;const D=x.daily;const pp=D.precipitation_probability_max?D.precipitation_probability_max[j]:null,mm=D.precip_mm?D.precip_mm[j]:null;
-  return {mx:Math.round(D.temperature_2m_max[j]),mn:Math.round(D.temperature_2m_min[j]),p:pp!=null?pp+'%':mm!=null?(mm<0.2?'0 мм':(Math.round(mm*10)/10)+' мм'):null,c:WC(D.weather_code[j])}}
+  return {mx:Math.round(D.temperature_2m_max[j]),mn:Math.round(D.temperature_2m_min[j]),p:pp!=null?pp+'%':mm!=null?(mm<0.2?'0 мм':(Math.round(mm*10)/10)+' мм'):null,c:WC(D.weather_code[j]),w:D.weather_code[j]}}
+const WIP={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',cs:'<path d="M12 2v2M4.93 4.93l1.41 1.41M20 12h2M19.07 4.93l-1.41 1.41M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/>',cl:'<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',fg:'<path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 17H7M17 21H9"/>',rn:'<path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6M8 14v6M12 16v6"/>',sn:'<path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M8 15h.01M8 19h.01M12 17h.01M12 21h.01M16 15h.01M16 19h.01"/>',th:'<path d="M6 16.326A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 .5 8.973"/><path d="m13 12-3 5h4l-3 5"/>'};
+const WI=c=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;vertical-align:-3px;margin-left:4px;color:var(--color-accent-600)">${WIP[c==0?'sun':c<=2?'cs':c==3?'cl':c<=48?'fg':c<=67||(c>=80&&c<=82)?'rn':c<=86&&c>=71?'sn':c>=95?'th':'cl']}</svg>`;
 const SYM=s=>/thunder/.test(s)?95:/snow/.test(s)?71:/sleet/.test(s)?67:/showers/.test(s)?80:/rain/.test(s)?61:/fog/.test(s)?45:/partly/.test(s)?2:/cloudy/.test(s)?3:/fair/.test(s)?1:0;
 function metDaily(j){const g={};j.properties.timeseries.forEach(t=>{const d=new Date(Date.parse(t.time)+2*36e5),k=d.toISOString().slice(0,10),h=d.getUTCHours();const o=g[k]||(g[k]={mx:-99,mn:99,mm:0,c:[]});
   const T=t.data.instant.details.air_temperature;o.mx=Math.max(o.mx,T);o.mn=Math.min(o.mn,T);const n1=t.data.next_1_hours,n6=t.data.next_6_hours;
