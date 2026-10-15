@@ -41,38 +41,15 @@ jobs:
           with open(idx, "r", encoding="utf-8") as f:
               html = f.read()
 
-          # 1. Удаляем скрипты AdGuard
           html = re.sub(r'<script[^>]*local\.adguard\.org[^>]*></script>', '', html)
-
-          # 2. Заменяем неработающие в Android WebView env(safe-area-inset-*) на динамические переменные от системы
           html = re.sub(r'env\(\s*safe-area-inset-top\s*(?:,[^)]+)?\)', 'var(--safe-top, 36px)', html)
           html = re.sub(r'env\(\s*safe-area-inset-bottom\s*(?:,[^)]+)?\)', 'var(--safe-bottom, 20px)', html)
-          html = re.sub(r'env\(\s*safe-area-inset-left\s*(?:,[^)]+)?\)', 'var(--safe-left, 0px)', html)
-          html = re.sub(r'env\(\s*safe-area-inset-right\s*(?:,[^)]+)?\)', 'var(--safe-right, 0px)', html)
 
-          # 3. Бережный патч стиля Android 17 и отступов верхней/нижней плашек без нарушения оригинальной верстки
-          patch = """<style id="android17-native-fix">
-          :root {
-            --safe-top: 36px;
-            --safe-bottom: 20px;
-            --safe-left: 0px;
-            --safe-right: 0px;
-            --radius-sm: 12px;
-            --radius-md: 18px;
-            --radius-lg: 26px;
-          }
+          patch = '''<style id="android17-native-fix">
+          :root { --safe-top: 36px; --safe-bottom: 20px; }
           * { -webkit-tap-highlight-color: transparent; }
           html, body { overscroll-behavior: none; }
-          .leaflet-control-attribution {
-            margin-bottom: var(--safe-bottom) !important;
-            background: rgba(255,255,255,0.6) !important;
-            backdrop-filter: blur(4px);
-            border-radius: 8px 0 0 0;
-          }
-          [data-theme="dark"] .leaflet-control-attribution {
-            background: rgba(28,25,23,0.6) !important;
-            color: #d7d3d3 !important;
-          }
+          .leaflet-control-attribution { margin-bottom: var(--safe-bottom) !important; background: rgba(255,255,255,0.6) !important; backdrop-filter: blur(4px); }
           </style>
           <script>
           (function(){
@@ -85,8 +62,7 @@ jobs:
             window.addEventListener("themechange", syncTheme);
             window.addEventListener("DOMContentLoaded", () => {
               syncTheme();
-              // Автоматически смещаем плавающую верхнюю шапку и нижний блок карточек ровно на высоту статус-бара и полосы жестов
-              const fixFloatingBars = () => {
+              const fixBars = () => {
                 const st = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 36;
                 const sb = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')) || 20;
                 document.querySelectorAll('body *').forEach(el => {
@@ -107,12 +83,11 @@ jobs:
                   }
                 });
               };
-              setTimeout(fixFloatingBars, 150);
-              setTimeout(fixFloatingBars, 600);
-              window.addEventListener("resize", fixFloatingBars);
+              setTimeout(fixBars, 150);
+              setTimeout(fixBars, 600);
             });
           })();
-          </script>"""
+          </script>'''
 
           html = html.replace("</head>", patch + "\n</head>", 1)
           with open(idx, "w", encoding="utf-8") as f:
@@ -138,38 +113,7 @@ jobs:
               f.write('plugins {\n id("com.android.application") version "8.7.3" apply false\n id("org.jetbrains.kotlin.android") version "2.0.21" apply false\n}\n')
 
           with open(f"{base}/app/build.gradle.kts", "w", encoding="utf-8") as f:
-              f.write("""plugins {
-              id("com.android.application")
-              id("org.jetbrains.kotlin.android")
-          }
-          android {
-              namespace = "com.balkanroute.app"
-              compileSdk = 35
-              defaultConfig {
-                  applicationId = "com.balkanroute.app"
-                  minSdk = 29
-                  targetSdk = 35
-                  versionCode = 2
-                  versionName = "1.1.0"
-              }
-              buildTypes {
-                  release {
-                      isMinifyEnabled = false
-                      signingConfig = signingConfigs.getByName("debug")
-                  }
-              }
-              compileOptions {
-                  sourceCompatibility = JavaVersion.VERSION_17
-                  targetCompatibility = JavaVersion.VERSION_17
-              }
-              kotlinOptions { jvmTarget = "17" }
-          }
-          dependencies {
-              implementation("androidx.core:core-ktx:1.15.0")
-              implementation("androidx.activity:activity-ktx:1.10.0")
-              implementation("androidx.webkit:webkit:1.12.1")
-          }
-          """)
+              f.write('plugins {\n id("com.android.application")\n id("org.jetbrains.kotlin.android")\n}\nandroid {\n namespace = "com.balkanroute.app"\n compileSdk = 35\n defaultConfig {\n applicationId = "com.balkanroute.app"\n minSdk = 29\n targetSdk = 35\n versionCode = 3\n versionName = "1.2.0"\n }\n buildTypes {\n release {\n isMinifyEnabled = false\n signingConfig = signingConfigs.getByName("debug")\n }\n }\n compileOptions {\n sourceCompatibility = JavaVersion.VERSION_17\n targetCompatibility = JavaVersion.VERSION_17\n }\n kotlinOptions { jvmTarget = "17" }\n}\ndependencies {\n implementation("androidx.core:core-ktx:1.15.0")\n implementation("androidx.activity:activity-ktx:1.10.0")\n implementation("androidx.webkit:webkit:1.12.1")\n}\n')
 
           with open(f"{res_val}/themes.xml", "w", encoding="utf-8") as f:
               f.write('<resources><style name="Theme.BalkanRoute" parent="android:Theme.Material.NoActionBar"><item name="android:statusBarColor">@android:color/transparent</item><item name="android:navigationBarColor">@android:color/transparent</item><item name="android:enforceStatusBarContrast">false</item><item name="android:enforceNavigationBarContrast">false</item><item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item></style></resources>')
@@ -177,8 +121,7 @@ jobs:
           with open(f"{base}/app/src/main/AndroidManifest.xml", "w", encoding="utf-8") as f:
               f.write('<manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/><uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/><uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/><application android:allowBackup="true" android:usesCleartextTraffic="true" android:hardwareAccelerated="true" android:enableOnBackInvokedCallback="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:label="Балканы" android:supportsRtl="true" android:theme="@style/Theme.BalkanRoute"><activity android:name=".MainActivity" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>')
 
-          with open(f"{java}/MainActivity.kt", "w", encoding="utf-8") as f:
-              f.write("""package com.balkanroute.app
+          kt_code = '''package com.balkanroute.app
 
           import android.Manifest
           import android.annotation.SuppressLint
@@ -209,41 +152,37 @@ jobs:
               private lateinit var webView: WebView
               private var sTop = 36; private var sBot = 20; private var sLeft = 0; private var sRight = 0
 
-              private fun handleRequest(loader: WebViewAssetLoader, req: WebResourceRequest): WebResourceResponse? {
+              private fun fixUrl(u: Uri): Uri {
+                  val p = u.path ?: ""
+                  return if (u.host == "appassets.androidplatform.net" && (p == "/assets/" || p == "/assets"))
+                      Uri.parse("https://appassets.androidplatform.net/assets/index.html") else u
+              }
+
+              private fun handleReq(loader: WebViewAssetLoader, req: WebResourceRequest): WebResourceResponse? {
                   val u = req.url
                   val host = u.host ?: ""
                   val path = u.path ?: ""
-
-                  // 1. Отдаем локальные файлы приложения из assets/
                   if (host == "appassets.androidplatform.net") {
                       val fixed = if (path == "/assets/" || path == "/assets")
                           Uri.parse("https://appassets.androidplatform.net/assets/index.html") else u
                       return loader.shouldInterceptRequest(fixed)
                   }
-
-                  // 2. Проксируем тайлы карты (OSM / CartoDB) с легальным User-Agent и CORS, чтобы серверы OSM не блокировали WebView
                   if (host.endsWith("openstreetmap.org") || host.endsWith("cartocdn.com")) {
                       return try {
                           val conn = (URL(u.toString()).openConnection() as HttpURLConnection).apply {
                               requestMethod = "GET"
                               connectTimeout = 10000
                               readTimeout = 10000
-                              setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 BalkanRouteApp/1.1")
+                              setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 16) Mobile Safari/537.36 BalkanRouteApp/1.2")
                               setRequestProperty("Accept", "image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
                               setRequestProperty("Referer", "https://opossym0078.github.io/balkan-route/")
                           }
                           conn.connect()
                           if (conn.responseCode == 200) {
                               val mime = conn.contentType?.substringBefore(";") ?: "image/png"
-                              val headers = mapOf(
-                                  "Access-Control-Allow-Origin" to "*",
-                                  "Cache-Control" to "public, max-age=604800"
-                              )
-                              WebResourceResponse(mime, null, 200, "OK", headers, conn.inputStream)
+                              WebResourceResponse(mime, null, 200, "OK", mapOf("Access-Control-Allow-Origin" to "*", "Cache-Control" to "public, max-age=604800"), conn.inputStream)
                           } else null
-                      } catch (_: Exception) {
-                          null
-                      }
+                      } catch (_: Exception) { null }
                   }
                   return null
               }
@@ -258,7 +197,7 @@ jobs:
                   WindowCompat.setDecorFitsSystemWindows(window, false)
 
                   if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                      ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 101)
+                      ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 101)
                   }
 
                   val loader = WebViewAssetLoader.Builder()
@@ -269,7 +208,7 @@ jobs:
                   if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)) {
                       ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(
                           object : ServiceWorkerClientCompat() {
-                              override fun shouldInterceptRequest(req: WebResourceRequest) = handleRequest(loader, req)
+                              override fun shouldInterceptRequest(req: WebResourceRequest) = handleReq(loader, req)
                           }
                       )
                   }
@@ -287,7 +226,7 @@ jobs:
                           allowFileAccess = false
                           allowContentAccess = false
                           mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                          userAgentString = "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+                          userAgentString = "Mozilla/5.0 (Linux; Android 16) Mobile Safari/537.36"
                           setGeolocationEnabled(true)
                           setSupportZoom(false)
                           builtInZoomControls = false
@@ -295,15 +234,13 @@ jobs:
                       }
                       addJavascriptInterface(AndroidBridge(), "AndroidBridge")
                       webViewClient = object : WebViewClient() {
-                          override fun shouldInterceptRequest(v: WebView, req: WebResourceRequest) = handleRequest(loader, req)
-
+                          override fun shouldInterceptRequest(v: WebView, req: WebResourceRequest) = handleReq(loader, req)
                           override fun shouldOverrideUrlLoading(v: WebView, req: WebResourceRequest): Boolean {
                               val u = req.url.toString()
                               if (u.startsWith("https://appassets.androidplatform.net/")) return false
                               try { startActivity(Intent(Intent.ACTION_VIEW, req.url)) } catch (_: Exception) {}
                               return true
                           }
-
                           override fun onPageFinished(v: WebView, u: String) { applyInsets() }
                       }
                       webChromeClient = object : WebChromeClient() {
@@ -319,8 +256,7 @@ jobs:
                       val d = resources.displayMetrics.density
                       sTop = (ins.top / d).toInt().coerceAtLeast(28)
                       sBot = (ins.bottom / d).toInt().coerceAtLeast(16)
-                      sLeft = (ins.left / d).toInt()
-                      sRight = (ins.right / d).toInt()
+                      sLeft = (ins.left / d).toInt(); sRight = (ins.right / d).toInt()
                       applyInsets()
                       WindowInsetsCompat.CONSUMED
                   }
@@ -342,4 +278,45 @@ jobs:
 
               private fun applyInsets() {
                   val s = "document.documentElement.style"
-                  webView.evaluateJavascript("$s.setProperty('--safe-top','${sTop}px');$s.setProperty('--safe-bottom','$
+                  webView.evaluateJavascript("$s.setProperty('--safe-top','${sTop}px');$s.setProperty('--safe-bottom','${sBot}px');$s.setProperty('--safe-left','${sLeft}px');$s.setProperty('--safe-right','${sRight}px');window.dispatchEvent(new Event('resize'));", null)
+              }
+
+              override fun onSaveInstanceState(outState: Bundle) {
+                  super.onSaveInstanceState(outState)
+                  webView.saveState(outState)
+              }
+
+              inner class AndroidBridge {
+                  @JavascriptInterface
+                  fun onThemeChanged(theme: String) {
+                      runOnUiThread {
+                          val light = theme != "dark"
+                          WindowCompat.getInsetsController(window, window.decorView).apply {
+                              isAppearanceLightStatusBars = light
+                              isAppearanceLightNavigationBars = light
+                          }
+                      }
+                  }
+              }
+          }'''
+
+          with open(f"{java}/MainActivity.kt", "w", encoding="utf-8") as f:
+              f.write(kt_code)
+
+      - name: 4. Setup Gradle 8.9
+        uses: actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: 5. Compile Release APK
+        working-directory: ./android_build
+        run: |
+          gradle assembleRelease
+          cp app/build/outputs/apk/release/*.apk ../BalkanRoute-Android17.apk
+
+      - name: 6. Upload Ready APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BalkanRoute-Android17-APK
+          path: BalkanRoute-Android17.apk
+          
