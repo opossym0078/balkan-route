@@ -18,7 +18,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: 3. Generate Android 17 Project & Patch HTML
+      - name: 3. Generate Android 17 Project & Fix Map + Safe Areas
         shell: python
         run: |
           import os, re, shutil
@@ -41,33 +41,76 @@ jobs:
           with open(idx, "r", encoding="utf-8") as f:
               html = f.read()
 
+          # 1. Удаляем скрипты AdGuard
           html = re.sub(r'<script[^>]*local\.adguard\.org[^>]*></script>', '', html)
 
-          patch = """<style id="m3-android17">
-          :root{--safe-top:env(safe-area-inset-top,24px);--safe-bottom:env(safe-area-inset-bottom,16px);--safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);--radius-sm:14px!important;--radius-md:22px!important;--radius-lg:32px!important;--color-bg:#fdf8f6!important;--color-surface:#f4ebe8!important;--color-text:#221917!important;--color-accent:#c0492b!important;--color-accent-2:#8f4c3b!important;--color-divider:color-mix(in srgb,#221917 12%,transparent)!important;--shadow-sm:0 2px 8px -2px rgba(34,25,23,.08)!important;--shadow-md:0 8px 24px -4px rgba(34,25,23,.12)!important;--shadow-lg:0 20px 40px -8px rgba(34,25,23,.2)!important;--m3-spring:cubic-bezier(0.22,1.25,0.36,1)}
-          [data-theme="dark"]{--color-bg:#161211!important;--color-surface:#231e1c!important;--color-text:#f3deda!important;--color-accent:#ffb4a3!important;--color-accent-2:#e7bdb3!important;--color-divider:color-mix(in srgb,#f3deda 12%,transparent)!important}
-          *{-webkit-tap-highlight-color:transparent;user-select:none}input,textarea{user-select:text}
-          html,body{overscroll-behavior-y:none;padding:0 var(--safe-right) var(--safe-bottom) var(--safe-left)}
-          .nav,header,.topbar,.app-header{padding-top:calc(var(--space-3) + var(--safe-top))!important;border-bottom:1px solid var(--color-divider)!important;backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);background:color-mix(in srgb,var(--color-bg) 82%,transparent)!important}
-          .leaflet-top{top:var(--safe-top)!important}.leaflet-bottom{bottom:var(--safe-bottom)!important}
-          .btn{border-radius:999px!important;padding:10px 20px!important;transition:transform .25s var(--m3-spring),background-color .2s!important}.btn:active{transform:scale(.94)}
-          .card{border-radius:var(--radius-md)!important;border:1px solid var(--color-divider)!important;padding:var(--space-4)!important;transition:transform .3s var(--m3-spring),box-shadow .25s!important}.card:active{transform:scale(.985)}
-          .seg{border-radius:999px!important;padding:4px!important;background:var(--color-surface)!important;border:1px solid var(--color-divider)!important;gap:4px}
-          .seg-opt{border-radius:999px!important;border-left:none!important;transition:background-color .25s,color .2s!important}
-          .tag{border-radius:999px!important;padding:4px 12px!important;font-weight:600}
-          .input{border-radius:var(--radius-sm)!important;padding:10px 14px!important}
-          .dialog-backdrop{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-          .dialog{border-radius:var(--radius-lg)!important;padding:var(--space-6)!important;border:1px solid var(--color-divider)}
-          .leaflet-bar,.leaflet-control-layers{border:1px solid var(--color-divider)!important;border-radius:var(--radius-md)!important;overflow:hidden;box-shadow:var(--shadow-md)!important;background:color-mix(in srgb,var(--color-surface) 90%,transparent)!important;backdrop-filter:blur(16px)}
-          .leaflet-bar a{background:transparent!important;color:var(--color-text)!important;border-bottom:1px solid var(--color-divider)!important;width:46px!important;height:46px!important;line-height:46px!important;display:flex!important;align-items:center;justify-content:center;transition:transform .2s var(--m3-spring)!important}.leaflet-bar a:active{transform:scale(.9)}
-          .leaflet-popup-content-wrapper{background:var(--color-surface)!important;color:var(--color-text)!important;border-radius:var(--radius-md)!important;box-shadow:var(--shadow-lg)!important;border:1px solid var(--color-divider)}
-          .leaflet-popup-tip{background:var(--color-surface)!important}
+          # 2. Заменяем неработающие в Android WebView env(safe-area-inset-*) на динамические переменные от системы
+          html = re.sub(r'env\(\s*safe-area-inset-top\s*(?:,[^)]+)?\)', 'var(--safe-top, 36px)', html)
+          html = re.sub(r'env\(\s*safe-area-inset-bottom\s*(?:,[^)]+)?\)', 'var(--safe-bottom, 20px)', html)
+          html = re.sub(r'env\(\s*safe-area-inset-left\s*(?:,[^)]+)?\)', 'var(--safe-left, 0px)', html)
+          html = re.sub(r'env\(\s*safe-area-inset-right\s*(?:,[^)]+)?\)', 'var(--safe-right, 0px)', html)
+
+          # 3. Бережный патч стиля Android 17 и отступов верхней/нижней плашек без нарушения оригинальной верстки
+          patch = """<style id="android17-native-fix">
+          :root {
+            --safe-top: 36px;
+            --safe-bottom: 20px;
+            --safe-left: 0px;
+            --safe-right: 0px;
+            --radius-sm: 12px;
+            --radius-md: 18px;
+            --radius-lg: 26px;
+          }
+          * { -webkit-tap-highlight-color: transparent; }
+          html, body { overscroll-behavior: none; }
+          .leaflet-control-attribution {
+            margin-bottom: var(--safe-bottom) !important;
+            background: rgba(255,255,255,0.6) !important;
+            backdrop-filter: blur(4px);
+            border-radius: 8px 0 0 0;
+          }
+          [data-theme="dark"] .leaflet-control-attribution {
+            background: rgba(28,25,23,0.6) !important;
+            color: #d7d3d3 !important;
+          }
           </style>
           <script>
           (function(){
-            const sync=()=>{const t=window.__thm?window.__thm.get():document.documentElement.dataset.theme;if(window.AndroidBridge)window.AndroidBridge.onThemeChanged(t||"light")};
-            window.addEventListener("themechange",sync);
-            window.addEventListener("DOMContentLoaded",sync);
+            const syncTheme = () => {
+              const t = window.__thm ? window.__thm.get() : document.documentElement.dataset.theme;
+              if (window.AndroidBridge && window.AndroidBridge.onThemeChanged) {
+                window.AndroidBridge.onThemeChanged(t || "light");
+              }
+            };
+            window.addEventListener("themechange", syncTheme);
+            window.addEventListener("DOMContentLoaded", () => {
+              syncTheme();
+              // Автоматически смещаем плавающую верхнюю шапку и нижний блок карточек ровно на высоту статус-бара и полосы жестов
+              const fixFloatingBars = () => {
+                const st = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 36;
+                const sb = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')) || 20;
+                document.querySelectorAll('body *').forEach(el => {
+                  if (el.classList.contains('leaflet-container') || el.closest('.leaflet-container')) return;
+                  const cs = getComputedStyle(el);
+                  if (cs.position === 'fixed' || cs.position === 'absolute') {
+                    const r = el.getBoundingClientRect();
+                    if (r.height > 0 && r.height < window.innerHeight * 0.85) {
+                      if (r.top >= 0 && r.top < st - 2 && !el.dataset.topFixed) {
+                        el.dataset.topFixed = "1";
+                        el.style.marginTop = st + "px";
+                      }
+                      if (window.innerHeight - r.bottom >= 0 && window.innerHeight - r.bottom < sb - 2 && r.top > window.innerHeight * 0.35 && !el.dataset.botFixed) {
+                        el.dataset.botFixed = "1";
+                        el.style.marginBottom = sb + "px";
+                      }
+                    }
+                  }
+                });
+              };
+              setTimeout(fixFloatingBars, 150);
+              setTimeout(fixFloatingBars, 600);
+              window.addEventListener("resize", fixFloatingBars);
+            });
           })();
           </script>"""
 
@@ -106,8 +149,8 @@ jobs:
                   applicationId = "com.balkanroute.app"
                   minSdk = 29
                   targetSdk = 35
-                  versionCode = 1
-                  versionName = "1.0.0"
+                  versionCode = 2
+                  versionName = "1.1.0"
               }
               buildTypes {
                   release {
@@ -132,13 +175,15 @@ jobs:
               f.write('<resources><style name="Theme.BalkanRoute" parent="android:Theme.Material.NoActionBar"><item name="android:statusBarColor">@android:color/transparent</item><item name="android:navigationBarColor">@android:color/transparent</item><item name="android:enforceStatusBarContrast">false</item><item name="android:enforceNavigationBarContrast">false</item><item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item></style></resources>')
 
           with open(f"{base}/app/src/main/AndroidManifest.xml", "w", encoding="utf-8") as f:
-              f.write('<manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/><uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/><uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/><application android:allowBackup="true" android:hardwareAccelerated="true" android:enableOnBackInvokedCallback="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:label="Балканы" android:supportsRtl="true" android:theme="@style/Theme.BalkanRoute"><activity android:name=".MainActivity" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>')
+              f.write('<manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/><uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/><uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/><application android:allowBackup="true" android:usesCleartextTraffic="true" android:hardwareAccelerated="true" android:enableOnBackInvokedCallback="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:label="Балканы" android:supportsRtl="true" android:theme="@style/Theme.BalkanRoute"><activity android:name=".MainActivity" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>')
 
           with open(f"{java}/MainActivity.kt", "w", encoding="utf-8") as f:
               f.write("""package com.balkanroute.app
 
+          import android.Manifest
           import android.annotation.SuppressLint
           import android.content.Intent
+          import android.content.pm.PackageManager
           import android.graphics.Color
           import android.net.Uri
           import android.os.Bundle
@@ -148,6 +193,8 @@ jobs:
           import androidx.activity.OnBackPressedCallback
           import androidx.activity.SystemBarStyle
           import androidx.activity.enableEdgeToEdge
+          import androidx.core.app.ActivityCompat
+          import androidx.core.content.ContextCompat
           import androidx.core.view.ViewCompat
           import androidx.core.view.WindowCompat
           import androidx.core.view.WindowInsetsCompat
@@ -155,15 +202,50 @@ jobs:
           import androidx.webkit.ServiceWorkerControllerCompat
           import androidx.webkit.WebViewAssetLoader
           import androidx.webkit.WebViewFeature
+          import java.net.HttpURLConnection
+          import java.net.URL
 
           class MainActivity : ComponentActivity() {
               private lateinit var webView: WebView
-              private var sTop = 0; private var sBot = 0; private var sLeft = 0; private var sRight = 0
+              private var sTop = 36; private var sBot = 20; private var sLeft = 0; private var sRight = 0
 
-              private fun fixUrl(u: Uri): Uri {
-                  val p = u.path ?: ""
-                  return if (u.host == "appassets.androidplatform.net" && (p == "/assets/" || p == "/assets"))
-                      Uri.parse("https://appassets.androidplatform.net/assets/index.html") else u
+              private fun handleRequest(loader: WebViewAssetLoader, req: WebResourceRequest): WebResourceResponse? {
+                  val u = req.url
+                  val host = u.host ?: ""
+                  val path = u.path ?: ""
+
+                  // 1. Отдаем локальные файлы приложения из assets/
+                  if (host == "appassets.androidplatform.net") {
+                      val fixed = if (path == "/assets/" || path == "/assets")
+                          Uri.parse("https://appassets.androidplatform.net/assets/index.html") else u
+                      return loader.shouldInterceptRequest(fixed)
+                  }
+
+                  // 2. Проксируем тайлы карты (OSM / CartoDB) с легальным User-Agent и CORS, чтобы серверы OSM не блокировали WebView
+                  if (host.endsWith("openstreetmap.org") || host.endsWith("cartocdn.com")) {
+                      return try {
+                          val conn = (URL(u.toString()).openConnection() as HttpURLConnection).apply {
+                              requestMethod = "GET"
+                              connectTimeout = 10000
+                              readTimeout = 10000
+                              setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 BalkanRouteApp/1.1")
+                              setRequestProperty("Accept", "image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
+                              setRequestProperty("Referer", "https://opossym0078.github.io/balkan-route/")
+                          }
+                          conn.connect()
+                          if (conn.responseCode == 200) {
+                              val mime = conn.contentType?.substringBefore(";") ?: "image/png"
+                              val headers = mapOf(
+                                  "Access-Control-Allow-Origin" to "*",
+                                  "Cache-Control" to "public, max-age=604800"
+                              )
+                              WebResourceResponse(mime, null, 200, "OK", headers, conn.inputStream)
+                          } else null
+                      } catch (_: Exception) {
+                          null
+                      }
+                  }
+                  return null
               }
 
               @SuppressLint("SetJavaScriptEnabled")
@@ -175,6 +257,10 @@ jobs:
                   super.onCreate(savedInstanceState)
                   WindowCompat.setDecorFitsSystemWindows(window, false)
 
+                  if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                      ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 101)
+                  }
+
                   val loader = WebViewAssetLoader.Builder()
                       .setDomain("appassets.androidplatform.net")
                       .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
@@ -183,8 +269,7 @@ jobs:
                   if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)) {
                       ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(
                           object : ServiceWorkerClientCompat() {
-                              override fun shouldInterceptRequest(req: WebResourceRequest) =
-                                  loader.shouldInterceptRequest(fixUrl(req.url))
+                              override fun shouldInterceptRequest(req: WebResourceRequest) = handleRequest(loader, req)
                           }
                       )
                   }
@@ -201,14 +286,16 @@ jobs:
                           databaseEnabled = true
                           allowFileAccess = false
                           allowContentAccess = false
+                          mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                          userAgentString = "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+                          setGeolocationEnabled(true)
                           setSupportZoom(false)
                           builtInZoomControls = false
                           displayZoomControls = false
                       }
                       addJavascriptInterface(AndroidBridge(), "AndroidBridge")
                       webViewClient = object : WebViewClient() {
-                          override fun shouldInterceptRequest(v: WebView, req: WebResourceRequest) =
-                              loader.shouldInterceptRequest(fixUrl(req.url))
+                          override fun shouldInterceptRequest(v: WebView, req: WebResourceRequest) = handleRequest(loader, req)
 
                           override fun shouldOverrideUrlLoading(v: WebView, req: WebResourceRequest): Boolean {
                               val u = req.url.toString()
@@ -230,8 +317,10 @@ jobs:
                   ViewCompat.setOnApplyWindowInsetsListener(webView) { _, wi ->
                       val ins = wi.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
                       val d = resources.displayMetrics.density
-                      sTop = (ins.top / d).toInt(); sBot = (ins.bottom / d).toInt()
-                      sLeft = (ins.left / d).toInt(); sRight = (ins.right / d).toInt()
+                      sTop = (ins.top / d).toInt().coerceAtLeast(28)
+                      sBot = (ins.bottom / d).toInt().coerceAtLeast(16)
+                      sLeft = (ins.left / d).toInt()
+                      sRight = (ins.right / d).toInt()
                       applyInsets()
                       WindowInsetsCompat.CONSUMED
                   }
@@ -253,43 +342,4 @@ jobs:
 
               private fun applyInsets() {
                   val s = "document.documentElement.style"
-                  webView.evaluateJavascript("$s.setProperty('--safe-top','${sTop}px');$s.setProperty('--safe-bottom','${sBot}px');$s.setProperty('--safe-left','${sLeft}px');$s.setProperty('--safe-right','${sRight}px');", null)
-              }
-
-              override fun onSaveInstanceState(outState: Bundle) {
-                  super.onSaveInstanceState(outState)
-                  webView.saveState(outState)
-              }
-
-              inner class AndroidBridge {
-                  @JavascriptInterface
-                  fun onThemeChanged(theme: String) {
-                      runOnUiThread {
-                          val light = theme != "dark"
-                          WindowCompat.getInsetsController(window, window.decorView).apply {
-                              isAppearanceLightStatusBars = light
-                              isAppearanceLightNavigationBars = light
-                          }
-                      }
-                  }
-              }
-          }
-          """)
-
-      - name: 4. Setup Gradle 8.9
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
-      - name: 5. Compile Release APK
-        working-directory: ./android_build
-        run: |
-          gradle assembleRelease
-          cp app/build/outputs/apk/release/*.apk ../BalkanRoute-Android17.apk
-
-      - name: 6. Upload Ready APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: BalkanRoute-Android17-APK
-          path: BalkanRoute-Android17.apk
-          
+                  webView.evaluateJavascript("$s.setProperty('--safe-top','${sTop}px');$s.setProperty('--safe-bottom','$
