@@ -18,356 +18,278 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: 3. Generate Android 17 Project, Icons & Patch HTML
+      - name: 3. Generate Android 17 Project & Patch HTML
         shell: python
         run: |
-          import os, re, shutil, struct, zlib
+          import os, re, shutil
 
           base = "android_build"
-          assets_dir = f"{base}/app/src/main/assets"
-          java_dir = f"{base}/app/src/main/java/com/balkanroute/app"
-          res_values = f"{base}/app/src/main/res/values"
-          res_drawable = f"{base}/app/src/main/res/drawable"
-          res_mipmap = f"{base}/app/src/main/res/mipmap-anydpi-v26"
+          assets = f"{base}/app/src/main/assets"
+          java = f"{base}/app/src/main/java/com/balkanroute/app"
+          res_val = f"{base}/app/src/main/res/values"
+          res_drw = f"{base}/app/src/main/res/drawable"
+          res_mip = f"{base}/app/src/main/res/mipmap-anydpi-v26"
 
-          for d in [assets_dir, java_dir, res_values, res_drawable, res_mipmap]:
+          for d in [assets, java, res_val, res_drw, res_mip]:
               os.makedirs(d, exist_ok=True)
 
           for item in os.listdir("."):
-              if item in [base, ".git", ".github"]:
-                  continue
-              if os.path.isfile(item):
-                  shutil.copy2(item, os.path.join(assets_dir, item))
+              if item not in [base, ".git", ".github"] and os.path.isfile(item):
+                  shutil.copy2(item, os.path.join(assets, item))
 
-          def make_png(path, size):
-              if os.path.exists(path):
-                  return
-              raw = bytearray()
-              for y in range(size):
-                  raw.append(0)
-                  nx = y / float(size)
-                  for x in range(size):
-                      px = x / float(size)
-                      r = int(208 - 34 * nx)
-                      g = int(96 - 72 * nx)
-                      b = int(63 - 63 * nx)
-                      m1 = abs(px - 0.42) * 1.8 + 0.32
-                      m2 = abs(px - 0.62) * 2.0 + 0.40
-                      if 0.32 <= nx <= 0.72 and (nx >= m1 or nx >= m2):
-                          if abs((px - 0.50) - 0.06 * ((nx - 0.5) * 6)) < 0.035 and nx > 0.48:
-                              pass
-                          else:
-                              r, g, b = 248, 244, 244
-                      raw.extend((r, g, b, 255))
-              def chunk(tag, data):
-                  return struct.pack("!I", len(data)) + tag + data + struct.pack("!I", zlib.crc32(tag + data) & 0xffffffff)
-              ihdr = struct.pack("!IIBBBBB", size, size, 8, 6, 0, 0, 0)
-              png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", zlib.compress(bytes(raw), 9)) + chunk(b"IEND", b"")
-              with open(path, "wb") as f:
-                  f.write(png)
-
-          make_png(f"{assets_dir}/icon-180.png", 180)
-          make_png(f"{assets_dir}/icon-192.png", 192)
-          make_png(f"{assets_dir}/icon-512.png", 512)
-
-          manifest_web = f"{assets_dir}/manifest.webmanifest"
-          if not os.path.exists(manifest_web):
-              with open(manifest_web, "w", encoding="utf-8") as f:
-                  f.write('{"name":"Балканы 2026","short_name":"Балканы","start_url":"./index.html","display":"standalone","background_color":"#161211","theme_color":"#d0603f","icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png"},{"src":"icon-512.png","sizes":"512x512","type":"image/png"}]}')
-
-          index_path = f"{assets_dir}/index.html"
-          with open(index_path, "r", encoding="utf-8") as f:
+          idx = f"{assets}/index.html"
+          with open(idx, "r", encoding="utf-8") as f:
               html = f.read()
 
           html = re.sub(r'<script[^>]*local\.adguard\.org[^>]*></script>', '', html)
 
-          android17_patch = '\n'.join([
-              '<style id="android-17-material-expressive">',
-              '  :root {',
-              '    --safe-top: env(safe-area-inset-top, 24px);',
-              '    --safe-bottom: env(safe-area-inset-bottom, 16px);',
-              '    --safe-left: env(safe-area-inset-left, 0px);',
-              '    --safe-right: env(safe-area-inset-right, 0px);',
-              '    --radius-sm: 14px !important;',
-              '    --radius-md: 22px !important;',
-              '    --radius-lg: 32px !important;',
-              '    --color-bg: #fdf8f6 !important;',
-              '    --color-surface: #f4ebe8 !important;',
-              '    --color-text: #221917 !important;',
-              '    --color-accent: #c0492b !important;',
-              '    --color-accent-2: #8f4c3b !important;',
-              '    --color-divider: color-mix(in srgb, #221917 12%, transparent) !important;',
-              '    --shadow-sm: 0 2px 8px -2px rgba(34, 25, 23, 0.08) !important;',
-              '    --shadow-md: 0 8px 24px -4px rgba(34, 25, 23, 0.12) !important;',
-              '    --shadow-lg: 0 20px 40px -8px rgba(34, 25, 23, 0.20) !important;',
-              '    --m3-spring: cubic-bezier(0.22, 1.25, 0.36, 1);',
-              '    --m3-standard: cubic-bezier(0.2, 0, 0, 1);',
-              '  }',
-              '  [data-theme="dark"] {',
-              '    --color-bg: #161211 !important;',
-              '    --color-surface: #231e1c !important;',
-              '    --color-text: #f3deda !important;',
-              '    --color-accent: #ffb4a3 !important;',
-              '    --color-accent-2: #e7bdb3 !important;',
-              '    --color-divider: color-mix(in srgb, #f3deda 12%, transparent) !important;',
-              '  }',
-              '  * { -webkit-tap-highlight-color: transparent; user-select: none; }',
-              '  input, textarea { user-select: text; }',
-              '  html, body {',
-              '    overscroll-behavior-y: none;',
-              '    padding-left: var(--safe-left);',
-              '    padding-right: var(--safe-right);',
-              '    padding-bottom: var(--safe-bottom);',
-              '  }',
-              '  .nav, header, .topbar, .app-header {',
-              '    padding-top: calc(var(--space-3) + var(--safe-top)) !important;',
-              '    border-bottom: 1px solid var(--color-divider) !important;',
-              '    backdrop-filter: blur(20px) saturate(180%);',
-              '    -webkit-backdrop-filter: blur(20px) saturate(180%);',
-              '    background: color-mix(in srgb, var(--color-bg) 82%, transparent) !important;',
-              '  }',
-              '  .leaflet-top { top: var(--safe-top) !important; }',
-              '  .leaflet-bottom { bottom: var(--safe-bottom) !important; }',
-              '  .btn {',
-              '    border-radius: 999px !important;',
-              '    padding: 10px 20px !important;',
-              '    transition: transform 0.25s var(--m3-spring), background-color 0.2s var(--m3-standard) !important;',
-              '  }',
-              '  .btn:active { transform: scale(0.94); }',
-              '  .card {',
-              '    border-radius: var(--radius-md) !important;',
-              '    border: 1px solid var(--color-divider) !important;',
-              '    padding: var(--space-4) !important;',
-              '    transition: transform 0.3s var(--m3-spring), box-shadow 0.25s var(--m3-standard) !important;',
-              '  }',
-              '  .card:active { transform: scale(0.985); }',
-              '  .seg {',
-              '    border-radius: 999px !important;',
-              '    padding: 4px !important;',
-              '    background: var(--color-surface) !important;',
-              '    border: 1px solid var(--color-divider) !important;',
-              '    gap: 4px;',
-              '  }',
-              '  .seg-opt {',
-              '    border-radius: 999px !important;',
-              '    border-left: none !important;',
-              '    transition: background-color 0.25s var(--m3-standard), color 0.2s var(--m3-standard) !important;',
-              '  }',
-              '  .tag { border-radius: 999px !important; padding: 4px 12px !important; font-weight: 600; }',
-              '  .input { border-radius: var(--radius-sm) !important; padding: 10px 14px !important; }',
-              '  .dialog-backdrop { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }',
-              '  .dialog {',
-              '    border-radius: var(--radius-lg) !important;',
-              '    padding: var(--space-6) !important;',
-              '    border: 1px solid var(--color-divider);',
-              '  }',
-              '  .leaflet-bar, .leaflet-control-layers {',
-              '    border: 1px solid var(--color-divider) !important;',
-              '    border-radius: var(--radius-md) !important;',
-              '    overflow: hidden;',
-              '    box-shadow: var(--shadow-md) !important;',
-              '    background: color-mix(in srgb, var(--color-surface) 90%, transparent) !important;',
-              '    backdrop-filter: blur(16px);',
-              '    -webkit-backdrop-filter: blur(16px);',
-              '  }',
-              '  .leaflet-bar a {',
-              '    background: transparent !important;',
-              '    color: var(--color-text) !important;',
-              '    border-bottom: 1px solid var(--color-divider) !important;',
-              '    width: 46px !important;',
-              '    height: 46px !important;',
-              '    line-height: 46px !important;',
-              '    display: flex !important;',
-              '    align-items: center;',
-              '    justify-content: center;',
-              '    transition: transform 0.2s var(--m3-spring), background-color 0.2s !important;',
-              '  }',
-              '  .leaflet-bar a:active {',
-              '    transform: scale(0.9);',
-              '    background: color-mix(in srgb, var(--color-accent) 18%, transparent) !important;',
-              '  }',
-              '  .leaflet-control-layers-toggle {',
-              '    width: 46px !important;',
-              '    height: 46px !important;',
-              '    background-image: none !important;',
-              '    display: flex !important;',
-              '    align-items: center;',
-              '    justify-content: center;',
-              '    color: var(--color-text);',
-              '  }',
-              '  .leaflet-popup-content-wrapper {',
-              '    background: var(--color-surface) !important;',
-              '    color: var(--color-text) !important;',
-              '    border-radius: var(--radius-md) !important;',
-              '    box-shadow: var(--shadow-lg) !important;',
-              '    border: 1px solid var(--color-divider);',
-              '  }',
-              '  .leaflet-popup-tip { background: var(--color-surface) !important; }',
-              '</style>',
-              '<script>',
-              '  (function() {',
-              '    const syncNativeTheme = () => {',
-              '      const currentTheme = window.__thm ? window.__thm.get() : document.documentElement.dataset.theme;',
-              '      if (window.AndroidBridge && typeof window.AndroidBridge.onThemeChanged === "function") {',
-              '        window.AndroidBridge.onThemeChanged(currentTheme || "light");',
-              '      }',
-              '    };',
-              '    window.addEventListener("themechange", syncNativeTheme);',
-              '    window.addEventListener("DOMContentLoaded", () => {',
-              '      syncNativeTheme();',
-              '      const upgradeIcons = () => {',
-              '        const zIn = document.querySelector(".leaflet-control-zoom-in");',
-              '        if (zIn && !zIn.dataset.m3) {',
-              '          zIn.dataset.m3 = "1";',
-              '          zIn.innerHTML = \'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>\';',
-              '        }',
-              '        const zOut = document.querySelector(".leaflet-control-zoom-out");',
-              '        if (zOut && !zOut.dataset.m3) {',
-              '          zOut.dataset.m3 = "1";',
-              '          zOut.innerHTML = \'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>\';',
-              '        }',
-              '        const layers = document.querySelector(".leaflet-control-layers-toggle");',
-              '        if (layers && !layers.dataset.m3) {',
-              '          layers.dataset.m3 = "1";',
-              '          layers.innerHTML = \'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>\';',
-              '        }',
-              '      };',
-              '      upgradeIcons();',
-              '      new MutationObserver(upgradeIcons).observe(document.body, { childList: true, subtree: true });',
-              '    });',
-              '  })();',
-              '</script>'
-          ])
+          patch = """<style id="m3-android17">
+          :root{--safe-top:env(safe-area-inset-top,24px);--safe-bottom:env(safe-area-inset-bottom,16px);--safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);--radius-sm:14px!important;--radius-md:22px!important;--radius-lg:32px!important;--color-bg:#fdf8f6!important;--color-surface:#f4ebe8!important;--color-text:#221917!important;--color-accent:#c0492b!important;--color-accent-2:#8f4c3b!important;--color-divider:color-mix(in srgb,#221917 12%,transparent)!important;--shadow-sm:0 2px 8px -2px rgba(34,25,23,.08)!important;--shadow-md:0 8px 24px -4px rgba(34,25,23,.12)!important;--shadow-lg:0 20px 40px -8px rgba(34,25,23,.2)!important;--m3-spring:cubic-bezier(0.22,1.25,0.36,1)}
+          [data-theme="dark"]{--color-bg:#161211!important;--color-surface:#231e1c!important;--color-text:#f3deda!important;--color-accent:#ffb4a3!important;--color-accent-2:#e7bdb3!important;--color-divider:color-mix(in srgb,#f3deda 12%,transparent)!important}
+          *{-webkit-tap-highlight-color:transparent;user-select:none}input,textarea{user-select:text}
+          html,body{overscroll-behavior-y:none;padding:0 var(--safe-right) var(--safe-bottom) var(--safe-left)}
+          .nav,header,.topbar,.app-header{padding-top:calc(var(--space-3) + var(--safe-top))!important;border-bottom:1px solid var(--color-divider)!important;backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);background:color-mix(in srgb,var(--color-bg) 82%,transparent)!important}
+          .leaflet-top{top:var(--safe-top)!important}.leaflet-bottom{bottom:var(--safe-bottom)!important}
+          .btn{border-radius:999px!important;padding:10px 20px!important;transition:transform .25s var(--m3-spring),background-color .2s!important}.btn:active{transform:scale(.94)}
+          .card{border-radius:var(--radius-md)!important;border:1px solid var(--color-divider)!important;padding:var(--space-4)!important;transition:transform .3s var(--m3-spring),box-shadow .25s!important}.card:active{transform:scale(.985)}
+          .seg{border-radius:999px!important;padding:4px!important;background:var(--color-surface)!important;border:1px solid var(--color-divider)!important;gap:4px}
+          .seg-opt{border-radius:999px!important;border-left:none!important;transition:background-color .25s,color .2s!important}
+          .tag{border-radius:999px!important;padding:4px 12px!important;font-weight:600}
+          .input{border-radius:var(--radius-sm)!important;padding:10px 14px!important}
+          .dialog-backdrop{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+          .dialog{border-radius:var(--radius-lg)!important;padding:var(--space-6)!important;border:1px solid var(--color-divider)}
+          .leaflet-bar,.leaflet-control-layers{border:1px solid var(--color-divider)!important;border-radius:var(--radius-md)!important;overflow:hidden;box-shadow:var(--shadow-md)!important;background:color-mix(in srgb,var(--color-surface) 90%,transparent)!important;backdrop-filter:blur(16px)}
+          .leaflet-bar a{background:transparent!important;color:var(--color-text)!important;border-bottom:1px solid var(--color-divider)!important;width:46px!important;height:46px!important;line-height:46px!important;display:flex!important;align-items:center;justify-content:center;transition:transform .2s var(--m3-spring)!important}.leaflet-bar a:active{transform:scale(.9)}
+          .leaflet-popup-content-wrapper{background:var(--color-surface)!important;color:var(--color-text)!important;border-radius:var(--radius-md)!important;box-shadow:var(--shadow-lg)!important;border:1px solid var(--color-divider)}
+          .leaflet-popup-tip{background:var(--color-surface)!important}
+          </style>
+          <script>
+          (function(){
+            const sync=()=>{const t=window.__thm?window.__thm.get():document.documentElement.dataset.theme;if(window.AndroidBridge)window.AndroidBridge.onThemeChanged(t||"light")};
+            window.addEventListener("themechange",sync);
+            window.addEventListener("DOMContentLoaded",sync);
+          })();
+          </script>"""
 
-          html = html.replace("</head>", android17_patch + "\n</head>", 1)
-          with open(index_path, "w", encoding="utf-8") as f:
+          html = html.replace("</head>", patch + "\n</head>", 1)
+          with open(idx, "w", encoding="utf-8") as f:
               f.write(html)
 
-          with open(f"{res_drawable}/ic_launcher_background.xml", "w", encoding="utf-8") as f:
-              f.write('\n'.join([
-                  '<?xml version="1.0" encoding="utf-8"?>',
-                  '<vector xmlns:android="http://schemas.android.com/apk/res/android"',
-                  '    android:width="108dp"',
-                  '    android:height="108dp"',
-                  '    android:viewportWidth="108"',
-                  '    android:viewportHeight="108">',
-                  '    <path android:fillColor="#D0603F" android:pathData="M0,0h108v108h-108z"/>',
-                  '    <path android:fillColor="#B84324" android:pathData="M0,68 C36,56 72,80 108,64 L108,108 L0,108 Z"/>',
-                  '</vector>'
-              ]))
+          with open(f"{res_drw}/ic_bg.xml", "w", encoding="utf-8") as f:
+              f.write('<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108"><path android:fillColor="#D0603F" android:pathData="M0,0h108v108h-108z"/><path android:fillColor="#B84324" android:pathData="M0,68 C36,56 72,80 108,64 L108,108 L0,108 Z"/></vector>')
 
-          fg_vector = '\n'.join([
-              '<?xml version="1.0" encoding="utf-8"?>',
-              '<vector xmlns:android="http://schemas.android.com/apk/res/android"',
-              '    android:width="108dp"',
-              '    android:height="108dp"',
-              '    android:viewportWidth="108"',
-              '    android:viewportHeight="108">',
-              '    <path android:fillColor="#F8F4F4" android:pathData="M24,72 L44,38 L58,60 L66,46 L84,72 Z"/>',
-              '    <path android:strokeColor="#D0603F" android:strokeWidth="4.5" android:strokeLineCap="round" android:pathData="M44,73 Q53,62 47,54 Q42,47 52,40"/>',
-              '    <path android:fillColor="#FFE0D9" android:pathData="M66,30 C61.5,30 58,33.5 58,38 C58,44 66,52 66,52 C66,52 74,44 74,38 C74,33.5 70.5,30 66,30 Z M66,41 A3,3 0 1,1 66,35 A3,3 0 1,1 66,41 Z"/>',
-              '</vector>'
-          ])
+          with open(f"{res_drw}/ic_fg.xml", "w", encoding="utf-8") as f:
+              f.write('<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108"><path android:fillColor="#F8F4F4" android:pathData="M24,72 L44,38 L58,60 L66,46 L84,72 Z"/><path android:strokeColor="#D0603F" android:strokeWidth="4.5" android:strokeLineCap="round" android:pathData="M44,73 Q53,62 47,54 Q42,47 52,40"/><path android:fillColor="#FFE0D9" android:pathData="M66,30 C61.5,30 58,33.5 58,38 C58,44 66,52 66,52 C66,52 74,44 74,38 C74,33.5 70.5,30 66,30 Z"/></vector>')
 
-          with open(f"{res_drawable}/ic_launcher_foreground.xml", "w", encoding="utf-8") as f:
-              f.write(fg_vector)
-          with open(f"{res_drawable}/ic_launcher_monochrome.xml", "w", encoding="utf-8") as f:
-              f.write(fg_vector)
-
-          adaptive_xml = '\n'.join([
-              '<?xml version="1.0" encoding="utf-8"?>',
-              '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">',
-              '    <background android:drawable="@drawable/ic_launcher_background"/>',
-              '    <foreground android:drawable="@drawable/ic_launcher_foreground"/>',
-              '    <monochrome android:drawable="@drawable/ic_launcher_monochrome"/>',
-              '</adaptive-icon>'
-          ])
-
-          with open(f"{res_mipmap}/ic_launcher.xml", "w", encoding="utf-8") as f:
-              f.write(adaptive_xml)
-          with open(f"{res_mipmap}/ic_launcher_round.xml", "w", encoding="utf-8") as f:
-              f.write(adaptive_xml)
+          ic_xml = '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@drawable/ic_bg"/><foreground android:drawable="@drawable/ic_fg"/><monochrome android:drawable="@drawable/ic_fg"/></adaptive-icon>'
+          with open(f"{res_mip}/ic_launcher.xml", "w", encoding="utf-8") as f: f.write(ic_xml)
+          with open(f"{res_mip}/ic_launcher_round.xml", "w", encoding="utf-8") as f: f.write(ic_xml)
 
           with open(f"{base}/settings.gradle.kts", "w", encoding="utf-8") as f:
-              f.write('\n'.join([
-                  'pluginManagement {',
-                  '    repositories { google(); mavenCentral(); gradlePluginPortal() }',
-                  '}',
-                  'dependencyResolutionManagement {',
-                  '    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)',
-                  '    repositories { google(); mavenCentral() }',
-                  '}',
-                  'rootProject.name = "BalkanRoute"',
-                  'include(":app")'
-              ]))
+              f.write('pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\ndependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }\nrootProject.name = "BalkanRoute"\ninclude(":app")\n')
 
           with open(f"{base}/gradle.properties", "w", encoding="utf-8") as f:
               f.write("android.useAndroidX=true\norg.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8\n")
 
           with open(f"{base}/build.gradle.kts", "w", encoding="utf-8") as f:
-              f.write('\n'.join([
-                  'plugins {',
-                  '    id("com.android.application") version "8.7.3" apply false',
-                  '    id("org.jetbrains.kotlin.android") version "2.0.21" apply false',
-                  '}'
-              ]))
+              f.write('plugins {\n id("com.android.application") version "8.7.3" apply false\n id("org.jetbrains.kotlin.android") version "2.0.21" apply false\n}\n')
 
           with open(f"{base}/app/build.gradle.kts", "w", encoding="utf-8") as f:
-              f.write('\n'.join([
-                  'plugins {',
-                  '    id("com.android.application")',
-                  '    id("org.jetbrains.kotlin.android")',
-                  '}',
-                  'android {',
-                  '    namespace = "com.balkanroute.app"',
-                  '    compileSdk = 35',
-                  '    defaultConfig {',
-                  '        applicationId = "com.balkanroute.app"',
-                  '        minSdk = 26',
-                  '        targetSdk = 35',
-                  '        versionCode = 1',
-                  '        versionName = "1.0.0"',
-                  '    }',
-                  '    buildTypes {',
-                  '        release {',
-                  '            isMinifyEnabled = false',
-                  '            signingConfig = signingConfigs.getByName("debug")',
-                  '        }',
-                  '    }',
-                  '    compileOptions {',
-                  '        sourceCompatibility = JavaVersion.VERSION_17',
-                  '        targetCompatibility = JavaVersion.VERSION_17',
-                  '    }',
-                  '    kotlinOptions {',
-                  '        jvmTarget = "17"',
-                  '    }',
-                  '}',
-                  'dependencies {',
-                  '    implementation("androidx.core:core-ktx:1.15.0")',
-                  '    implementation("androidx.activity:activity-ktx:1.10.0")',
-                  '    implementation("androidx.appcompat:appcompat:1.7.0")',
-                  '    implementation("com.google.android.material:material:1.12.0")',
-                  '    implementation("androidx.webkit:webkit:1.12.1")',
-                  '}'
-              ]))
+              f.write("""plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+          }
+          android {
+              namespace = "com.balkanroute.app"
+              compileSdk = 35
+              defaultConfig {
+                  applicationId = "com.balkanroute.app"
+                  minSdk = 29
+                  targetSdk = 35
+                  versionCode = 1
+                  versionName = "1.0.0"
+              }
+              buildTypes {
+                  release {
+                      isMinifyEnabled = false
+                      signingConfig = signingConfigs.getByName("debug")
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions { jvmTarget = "17" }
+          }
+          dependencies {
+              implementation("androidx.core:core-ktx:1.15.0")
+              implementation("androidx.activity:activity-ktx:1.10.0")
+              implementation("androidx.webkit:webkit:1.12.1")
+          }
+          """)
 
-          with open(f"{res_values}/themes.xml", "w", encoding="utf-8") as f:
-              f.write('\n'.join([
-                  '<?xml version="1.0" encoding="utf-8"?>',
-                  '<resources xmlns:tools="http://schemas.android.com/tools">',
-                  '    <style name="Theme.BalkanRoute" parent="Theme.Material3.DayNight.NoActionBar">',
-                  '        <item name="android:statusBarColor">@android:color/transparent</item>',
-                  '        <item name="android:navigationBarColor">@android:color/transparent</item>',
-                  '        <item name="android:windowTranslucentStatus">false</item>',
-                  '        <item name="android:windowTranslucentNavigation">false</item>',
-                  '        <item name="android:enforceStatusBarContrast" tools:targetApi="q">false</item>',
-                  '        <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>',
-                  '        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="o_mr1">shortEdges</item>',
-                  '    </style>',
-                  '</resources>'
-              ]))
+          with open(f"{res_val}/themes.xml", "w", encoding="utf-8") as f:
+              f.write('<resources><style name="Theme.BalkanRoute" parent="android:Theme.Material.NoActionBar"><item name="android:statusBarColor">@android:color/transparent</item><item name="android:navigationBarColor">@android:color/transparent</item><item name="android:enforceStatusBarContrast">false</item><item name="android:enforceNavigationBarContrast">false</item><item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item></style></resources>')
 
           with open(f"{base}/app/src/main/AndroidManifest.xml", "w", encoding="utf-8") as f:
-              f.write('\n'.join([
-                  '<?xml version="1.0" encoding="utf-8"?>',
-                  '<manifest xmlns:android="h
+              f.write('<manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/><uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/><uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/><application android:allowBackup="true" android:hardwareAccelerated="true" android:enableOnBackInvokedCallback="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:label="Балканы" android:supportsRtl="true" android:theme="@style/Theme.BalkanRoute"><activity android:name=".MainActivity" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>')
+
+          with open(f"{java}/MainActivity.kt", "w", encoding="utf-8") as f:
+              f.write("""package com.balkanroute.app
+
+          import android.annotation.SuppressLint
+          import android.content.Intent
+          import android.graphics.Color
+          import android.net.Uri
+          import android.os.Bundle
+          import android.view.ViewGroup
+          import android.webkit.*
+          import androidx.activity.ComponentActivity
+          import androidx.activity.OnBackPressedCallback
+          import androidx.activity.SystemBarStyle
+          import androidx.activity.enableEdgeToEdge
+          import androidx.core.view.ViewCompat
+          import androidx.core.view.WindowCompat
+          import androidx.core.view.WindowInsetsCompat
+          import androidx.webkit.ServiceWorkerClientCompat
+          import androidx.webkit.ServiceWorkerControllerCompat
+          import androidx.webkit.WebViewAssetLoader
+          import androidx.webkit.WebViewFeature
+
+          class MainActivity : ComponentActivity() {
+              private lateinit var webView: WebView
+              private var sTop = 0; private var sBot = 0; private var sLeft = 0; private var sRight = 0
+
+              private fun fixUrl(u: Uri): Uri {
+                  val p = u.path ?: ""
+                  return if (u.host == "appassets.androidplatform.net" && (p == "/assets/" || p == "/assets"))
+                      Uri.parse("https://appassets.androidplatform.net/assets/index.html") else u
+              }
+
+              @SuppressLint("SetJavaScriptEnabled")
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  enableEdgeToEdge(
+                      statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
+                      navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
+                  )
+                  super.onCreate(savedInstanceState)
+                  WindowCompat.setDecorFitsSystemWindows(window, false)
+
+                  val loader = WebViewAssetLoader.Builder()
+                      .setDomain("appassets.androidplatform.net")
+                      .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
+                      .build()
+
+                  if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)) {
+                      ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(
+                          object : ServiceWorkerClientCompat() {
+                              override fun shouldInterceptRequest(req: WebResourceRequest) =
+                                  loader.shouldInterceptRequest(fixUrl(req.url))
+                          }
+                      )
+                  }
+
+                  webView = WebView(this).apply {
+                      layoutParams = ViewGroup.LayoutParams(-1, -1)
+                      setBackgroundColor(Color.TRANSPARENT)
+                      overScrollMode = WebView.OVER_SCROLL_NEVER
+                      isVerticalScrollBarEnabled = false
+                      isHorizontalScrollBarEnabled = false
+                      settings.apply {
+                          javaScriptEnabled = true
+                          domStorageEnabled = true
+                          databaseEnabled = true
+                          allowFileAccess = false
+                          allowContentAccess = false
+                          setSupportZoom(false)
+                          builtInZoomControls = false
+                          displayZoomControls = false
+                      }
+                      addJavascriptInterface(AndroidBridge(), "AndroidBridge")
+                      webViewClient = object : WebViewClient() {
+                          override fun shouldInterceptRequest(v: WebView, req: WebResourceRequest) =
+                              loader.shouldInterceptRequest(fixUrl(req.url))
+
+                          override fun shouldOverrideUrlLoading(v: WebView, req: WebResourceRequest): Boolean {
+                              val u = req.url.toString()
+                              if (u.startsWith("https://appassets.androidplatform.net/")) return false
+                              try { startActivity(Intent(Intent.ACTION_VIEW, req.url)) } catch (_: Exception) {}
+                              return true
+                          }
+
+                          override fun onPageFinished(v: WebView, u: String) { applyInsets() }
+                      }
+                      webChromeClient = object : WebChromeClient() {
+                          override fun onGeolocationPermissionsShowPrompt(o: String, cb: GeolocationPermissions.Callback) {
+                              cb.invoke(o, true, false)
+                          }
+                      }
+                  }
+                  setContentView(webView)
+
+                  ViewCompat.setOnApplyWindowInsetsListener(webView) { _, wi ->
+                      val ins = wi.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+                      val d = resources.displayMetrics.density
+                      sTop = (ins.top / d).toInt(); sBot = (ins.bottom / d).toInt()
+                      sLeft = (ins.left / d).toInt(); sRight = (ins.right / d).toInt()
+                      applyInsets()
+                      WindowInsetsCompat.CONSUMED
+                  }
+
+                  onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+                      override fun handleOnBackPressed() {
+                          webView.evaluateJavascript("(function(){const d=document.querySelector('.dialog-backdrop:not([hidden])');if(d){d.click();return true;}const p=document.querySelector('.leaflet-popup-close-button');if(p){p.click();return true;}return false;})()") { h ->
+                              if (h != "true") {
+                                  if (webView.canGoBack()) webView.goBack()
+                                  else { isEnabled = false; onBackPressedDispatcher.onBackPressed(); isEnabled = true }
+                              }
+                          }
+                      }
+                  })
+
+                  if (savedInstanceState == null) webView.loadUrl("https://appassets.androidplatform.net/assets/index.html")
+                  else webView.restoreState(savedInstanceState)
+              }
+
+              private fun applyInsets() {
+                  val s = "document.documentElement.style"
+                  webView.evaluateJavascript("$s.setProperty('--safe-top','${sTop}px');$s.setProperty('--safe-bottom','${sBot}px');$s.setProperty('--safe-left','${sLeft}px');$s.setProperty('--safe-right','${sRight}px');", null)
+              }
+
+              override fun onSaveInstanceState(outState: Bundle) {
+                  super.onSaveInstanceState(outState)
+                  webView.saveState(outState)
+              }
+
+              inner class AndroidBridge {
+                  @JavascriptInterface
+                  fun onThemeChanged(theme: String) {
+                      runOnUiThread {
+                          val light = theme != "dark"
+                          WindowCompat.getInsetsController(window, window.decorView).apply {
+                              isAppearanceLightStatusBars = light
+                              isAppearanceLightNavigationBars = light
+                          }
+                      }
+                  }
+              }
+          }
+          """)
+
+      - name: 4. Setup Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: 5. Compile Release APK
+        working-directory: ./android_build
+        run: |
+          gradle assembleRelease
+          cp app/build/outputs/apk/release/*.apk ../BalkanRoute-Android17.apk
+
+      - name: 6. Upload Ready APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BalkanRoute-Android17-APK
+          path: BalkanRoute-Android17.apk
+          
