@@ -18,7 +18,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: 3. Generate Android 17 Project & Fix Map + Safe Areas
+      - name: 3. Generate Android 17 Project, Fix Map & Material 3 UI
         shell: python
         run: |
           import os, re, shutil
@@ -37,22 +37,106 @@ jobs:
               if item not in [base, ".git", ".github"] and os.path.isfile(item):
                   shutil.copy2(item, os.path.join(assets, item))
 
+          # 1. Переписываем sw.js так, чтобы он не сбрасывал тайлы в Response.error() в WebView
+          sw_code = '''const V='balk-shell-v8',RT='tiles-rt',PRE='tiles-pre';
+          self.addEventListener('install',e=>{self.skipWaiting()});
+          self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('balk-shell')&&k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+          const tileKey=u=>{let st=null;if(/(^|\\.)tile\\.openstreetmap\\.org$/.test(u.hostname))st='osm';else if(/basemaps\\.cartocdn\\.com$/.test(u.hostname))st=/dark_all/.test(u.pathname)?'dark':'voy';if(!st)return null;
+            const m=u.pathname.match(/\\/(\\d+)\\/(\\d+)\\/(\\d+)(?:@2x)?\\.png$/);return m?{st,z:m[1],x:m[2],y:m[3],id:`https://t.local/${st}/${m[1]}/${m[2]}/${m[3]}`}:null};
+          async function tile(e,k){
+            try {
+              const [pre,rt]=await Promise.all([caches.open(PRE),caches.open(RT)]);
+              const hit=await pre.match(k.id)||await rt.match(k.id);
+              if(hit) return hit;
+            } catch(err){}
+            return fetch(e.request);
+          }
+          self.addEventListener('fetch',e=>{
+            const q=e.request;if(q.method!=='GET'||q.cache==='no-store')return;
+            const u=new URL(q.url);
+            const k=tileKey(u);
+            if(k){e.respondWith(tile(e,k));return}
+          });
+          '''
+          with open(f"{assets}/sw.js", "w", encoding="utf-8") as f:
+              f.write(sw_code)
+
+          # 2. Патчим index.html: исправляем рендеринг тайлов, отступы статус-бара и добавляем стиль Material 3 Expressive
           idx = f"{assets}/index.html"
           with open(idx, "r", encoding="utf-8") as f:
               html = f.read()
 
           html = re.sub(r'<script[^>]*local\.adguard\.org[^>]*></script>', '', html)
-          html = re.sub(r'env\(\s*safe-area-inset-top\s*(?:,[^)]+)?\)', 'var(--safe-top, 36px)', html)
-          html = re.sub(r'env\(\s*safe-area-inset-bottom\s*(?:,[^)]+)?\)', 'var(--safe-bottom, 20px)', html)
+          html = re.sub(r'env\(\s*safe-area-inset-top\s*(?:,[^)]+)?\)', 'var(--safe-top, 38px)', html)
+          html = re.sub(r'env\(\s*safe-area-inset-bottom\s*(?:,[^)]+)?\)', 'var(--safe-bottom, 22px)', html)
+          html = re.sub(r'env\(\s*safe-area-inset-left\s*(?:,[^)]+)?\)', 'var(--safe-left, 0px)', html)
+          html = re.sub(r'env\(\s*safe-area-inset-right\s*(?:,[^)]+)?\)', 'var(--safe-right, 0px)', html)
 
-          patch = '''<style id="android17-native-fix">
-          :root { --safe-top: 36px; --safe-bottom: 20px; }
+          patch = '''<style id="android17-material3-upgrade">
+          :root {
+            --safe-top: 38px;
+            --safe-bottom: 22px;
+            --safe-left: 0px;
+            --safe-right: 0px;
+            --m3-spring: cubic-bezier(0.22, 1.25, 0.36, 1);
+          }
           * { -webkit-tap-highlight-color: transparent; }
           html, body { overscroll-behavior: none; }
-          .leaflet-control-attribution { margin-bottom: var(--safe-bottom) !important; background: rgba(255,255,255,0.6) !important; backdrop-filter: blur(4px); }
+
+          /* Исправление белого поля вместо карты в Android WebView */
+          .leaflet-container img.leaflet-tile {
+            mix-blend-mode: normal !important;
+            filter: none !important;
+          }
+          .leaflet-tile-pane {
+            z-index: 200 !important;
+            opacity: 1 !important;
+          }
+
+          /* Верхний защитный градиент под прозрачный статус-бар Android 17 */
+          body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: calc(var(--safe-top, 38px) + 10px);
+            background: linear-gradient(to bottom, rgba(243,242,242,0.88) 35%, rgba(243,242,242,0));
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 9998;
+            pointer-events: none;
+          }
+          [data-theme="dark"] body::before {
+            background: linear-gradient(to bottom, rgba(28,25,23,0.88) 35%, rgba(28,25,23,0));
+          }
+
+          /* Пружинная физика Material 3 Expressive для интерактивных элементов */
+          button, .btn, [role="button"], .leaflet-marker-icon {
+            transition: transform 0.22s var(--m3-spring), box-shadow 0.2s ease, background-color 0.2s ease !important;
+          }
+          button:active, .btn:active, [role="button"]:active {
+            transform: scale(0.94) !important;
+          }
+
+          /* Копирайт карты аккуратно сбоку, чтобы не перекрывался полосой жестов */
+          .leaflet-control-attribution {
+            font-size: 9px !important;
+            opacity: 0.65;
+            border-radius: 8px !important;
+            margin-bottom: calc(var(--safe-bottom, 22px) + 4px) !important;
+            margin-right: 8px !important;
+            padding: 2px 6px !important;
+            backdrop-filter: blur(6px);
+          }
           </style>
           <script>
           (function(){
+            // Принудительное обновление Service Worker и очистка старого сломанного воркера v5
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(regs => {
+                regs.forEach(r => r.update());
+              });
+            }
+
             const syncTheme = () => {
               const t = window.__thm ? window.__thm.get() : document.documentElement.dataset.theme;
               if (window.AndroidBridge && window.AndroidBridge.onThemeChanged) {
@@ -60,31 +144,17 @@ jobs:
               }
             };
             window.addEventListener("themechange", syncTheme);
+
+            // Нативный тактильный отклик при нажатии на кнопки и пины
+            document.addEventListener("pointerdown", (e) => {
+              const t = e.target.closest('button, a, .btn, [role="button"], .leaflet-marker-icon, .seg-opt');
+              if (t && window.AndroidBridge && window.AndroidBridge.haptic) {
+                window.AndroidBridge.haptic();
+              }
+            }, { passive: true });
+
             window.addEventListener("DOMContentLoaded", () => {
               syncTheme();
-              const fixBars = () => {
-                const st = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 36;
-                const sb = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')) || 20;
-                document.querySelectorAll('body *').forEach(el => {
-                  if (el.classList.contains('leaflet-container') || el.closest('.leaflet-container')) return;
-                  const cs = getComputedStyle(el);
-                  if (cs.position === 'fixed' || cs.position === 'absolute') {
-                    const r = el.getBoundingClientRect();
-                    if (r.height > 0 && r.height < window.innerHeight * 0.85) {
-                      if (r.top >= 0 && r.top < st - 2 && !el.dataset.topFixed) {
-                        el.dataset.topFixed = "1";
-                        el.style.marginTop = st + "px";
-                      }
-                      if (window.innerHeight - r.bottom >= 0 && window.innerHeight - r.bottom < sb - 2 && r.top > window.innerHeight * 0.35 && !el.dataset.botFixed) {
-                        el.dataset.botFixed = "1";
-                        el.style.marginBottom = sb + "px";
-                      }
-                    }
-                  }
-                });
-              };
-              setTimeout(fixBars, 150);
-              setTimeout(fixBars, 600);
             });
           })();
           </script>'''
@@ -93,6 +163,7 @@ jobs:
           with open(idx, "w", encoding="utf-8") as f:
               f.write(html)
 
+          # 3. Иконки приложения
           with open(f"{res_drw}/ic_bg.xml", "w", encoding="utf-8") as f:
               f.write('<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108"><path android:fillColor="#D0603F" android:pathData="M0,0h108v108h-108z"/><path android:fillColor="#B84324" android:pathData="M0,68 C36,56 72,80 108,64 L108,108 L0,108 Z"/></vector>')
 
@@ -103,6 +174,7 @@ jobs:
           with open(f"{res_mip}/ic_launcher.xml", "w", encoding="utf-8") as f: f.write(ic_xml)
           with open(f"{res_mip}/ic_launcher_round.xml", "w", encoding="utf-8") as f: f.write(ic_xml)
 
+          # 4. Конфигурация Gradle
           with open(f"{base}/settings.gradle.kts", "w", encoding="utf-8") as f:
               f.write('pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\ndependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }\nrootProject.name = "BalkanRoute"\ninclude(":app")\n')
 
@@ -113,7 +185,7 @@ jobs:
               f.write('plugins {\n id("com.android.application") version "8.7.3" apply false\n id("org.jetbrains.kotlin.android") version "2.0.21" apply false\n}\n')
 
           with open(f"{base}/app/build.gradle.kts", "w", encoding="utf-8") as f:
-              f.write('plugins {\n id("com.android.application")\n id("org.jetbrains.kotlin.android")\n}\nandroid {\n namespace = "com.balkanroute.app"\n compileSdk = 35\n defaultConfig {\n applicationId = "com.balkanroute.app"\n minSdk = 29\n targetSdk = 35\n versionCode = 3\n versionName = "1.2.0"\n }\n buildTypes {\n release {\n isMinifyEnabled = false\n signingConfig = signingConfigs.getByName("debug")\n }\n }\n compileOptions {\n sourceCompatibility = JavaVersion.VERSION_17\n targetCompatibility = JavaVersion.VERSION_17\n }\n kotlinOptions { jvmTarget = "17" }\n}\ndependencies {\n implementation("androidx.core:core-ktx:1.15.0")\n implementation("androidx.activity:activity-ktx:1.10.0")\n implementation("androidx.webkit:webkit:1.12.1")\n}\n')
+              f.write('plugins {\n id("com.android.application")\n id("org.jetbrains.kotlin.android")\n}\nandroid {\n namespace = "com.balkanroute.app"\n compileSdk = 35\n defaultConfig {\n applicationId = "com.balkanroute.app"\n minSdk = 29\n targetSdk = 35\n versionCode = 5\n versionName = "1.4.0"\n }\n buildTypes {\n release {\n isMinifyEnabled = false\n signingConfig = signingConfigs.getByName("debug")\n }\n }\n compileOptions {\n sourceCompatibility = JavaVersion.VERSION_17\n targetCompatibility = JavaVersion.VERSION_17\n }\n kotlinOptions { jvmTarget = "17" }\n}\ndependencies {\n implementation("androidx.core:core-ktx:1.15.0")\n implementation("androidx.activity:activity-ktx:1.10.0")\n implementation("androidx.webkit:webkit:1.12.1")\n}\n')
 
           with open(f"{res_val}/themes.xml", "w", encoding="utf-8") as f:
               f.write('<resources><style name="Theme.BalkanRoute" parent="android:Theme.Material.NoActionBar"><item name="android:statusBarColor">@android:color/transparent</item><item name="android:navigationBarColor">@android:color/transparent</item><item name="android:enforceStatusBarContrast">false</item><item name="android:enforceNavigationBarContrast">false</item><item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item></style></resources>')
@@ -121,6 +193,7 @@ jobs:
           with open(f"{base}/app/src/main/AndroidManifest.xml", "w", encoding="utf-8") as f:
               f.write('<manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/><uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/><uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/><application android:allowBackup="true" android:usesCleartextTraffic="true" android:hardwareAccelerated="true" android:enableOnBackInvokedCallback="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:label="Балканы" android:supportsRtl="true" android:theme="@style/Theme.BalkanRoute"><activity android:name=".MainActivity" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>')
 
+          # 5. Нативный код MainActivity с дисковым кэшем тайлов и авто-резервом CartoDB Voyager
           kt_code = '''package com.balkanroute.app
 
           import android.Manifest
@@ -130,6 +203,7 @@ jobs:
           import android.graphics.Color
           import android.net.Uri
           import android.os.Bundle
+          import android.view.HapticFeedbackConstants
           import android.view.ViewGroup
           import android.webkit.*
           import androidx.activity.ComponentActivity
@@ -145,44 +219,87 @@ jobs:
           import androidx.webkit.ServiceWorkerControllerCompat
           import androidx.webkit.WebViewAssetLoader
           import androidx.webkit.WebViewFeature
+          import java.io.ByteArrayInputStream
+          import java.io.File
           import java.net.HttpURLConnection
           import java.net.URL
 
           class MainActivity : ComponentActivity() {
               private lateinit var webView: WebView
-              private var sTop = 36; private var sBot = 20; private var sLeft = 0; private var sRight = 0
+              private lateinit var tileCacheDir: File
+              private var sTop = 38; private var sBot = 22; private var sLeft = 0; private var sRight = 0
+              private val tileRegex = Regex("/(\\\\d+)/(\\\\d+)/(\\\\d+)(?:@2x)?\\\\.png$")
 
-              private fun fixUrl(u: Uri): Uri {
-                  val p = u.path ?: ""
-                  return if (u.host == "appassets.androidplatform.net" && (p == "/assets/" || p == "/assets"))
-                      Uri.parse("https://appassets.androidplatform.net/assets/index.html") else u
+              private fun downloadBytes(urlStr: String): ByteArray? {
+                  return try {
+                      val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
+                          requestMethod = "GET"
+                          connectTimeout = 8000
+                          readTimeout = 8000
+                          setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 16; Pixel 9 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36")
+                          setRequestProperty("Accept", "image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
+                      }
+                      conn.connect()
+                      if (conn.responseCode == 200) {
+                          val bytes = conn.inputStream.use { it.readBytes() }
+                          if (bytes.size > 100) bytes else null
+                      } else null
+                  } catch (_: Exception) { null }
               }
 
               private fun handleReq(loader: WebViewAssetLoader, req: WebResourceRequest): WebResourceResponse? {
                   val u = req.url
                   val host = u.host ?: ""
                   val path = u.path ?: ""
+
                   if (host == "appassets.androidplatform.net") {
                       val fixed = if (path == "/assets/" || path == "/assets")
                           Uri.parse("https://appassets.androidplatform.net/assets/index.html") else u
                       return loader.shouldInterceptRequest(fixed)
                   }
+
                   if (host.endsWith("openstreetmap.org") || host.endsWith("cartocdn.com")) {
-                      return try {
-                          val conn = (URL(u.toString()).openConnection() as HttpURLConnection).apply {
-                              requestMethod = "GET"
-                              connectTimeout = 10000
-                              readTimeout = 10000
-                              setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 16) Mobile Safari/537.36 BalkanRouteApp/1.2")
-                              setRequestProperty("Accept", "image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
-                              setRequestProperty("Referer", "https://opossym0078.github.io/balkan-route/")
+                      val m = tileRegex.find(path)
+                      val style = when {
+                          path.contains("dark_all") -> "dark"
+                          host.endsWith("openstreetmap.org") -> "osm"
+                          else -> "voy"
+                      }
+                      val respHeaders = mapOf(
+                          "Access-Control-Allow-Origin" to "*",
+                          "Access-Control-Allow-Methods" to "GET, OPTIONS",
+                          "Cache-Control" to "public, max-age=2592000"
+                      )
+
+                      if (m != null) {
+                          val (z, x, y) = m.destructured
+                          val cacheFile = File(tileCacheDir, "${style}_${z}_${x}_${y}.png")
+                          if (cacheFile.exists() && cacheFile.length() > 100) {
+                              return try {
+                                  WebResourceResponse("image/png", null, 200, "OK", respHeaders, ByteArrayInputStream(cacheFile.readBytes()))
+                              } catch (_: Exception) { null }
                           }
-                          conn.connect()
-                          if (conn.responseCode == 200) {
-                              val mime = conn.contentType?.substringBefore(";") ?: "image/png"
-                              WebResourceResponse(mime, null, 200, "OK", mapOf("Access-Control-Allow-Origin" to "*", "Cache-Control" to "public, max-age=604800"), conn.inputStream)
-                          } else null
-                      } catch (_: Exception) { null }
+
+                          // Скачиваем с основного сервера, а если OSM заблокировал VPN — автоматически берем тайл с CartoDB Voyager
+                          var bytes = downloadBytes(u.toString())
+                          if (bytes == null) {
+                              val fallbackUrl = if (style == "dark")
+                                  "https://a.basemaps.cartocdn.com/dark_all/$z/$x/$y@2x.png"
+                              else
+                                  "https://a.basemaps.cartocdn.com/rastertiles/voyager/$z/$x/$y@2x.png"
+                              bytes = downloadBytes(fallbackUrl)
+                          }
+
+                          if (bytes != null) {
+                              try { cacheFile.writeBytes(bytes) } catch (_: Exception) {}
+                              return WebResourceResponse("image/png", null, 200, "OK", respHeaders, ByteArrayInputStream(bytes))
+                          }
+                      } else {
+                          val bytes = downloadBytes(u.toString())
+                          if (bytes != null) {
+                              return WebResourceResponse("image/png", null, 200, "OK", respHeaders, ByteArrayInputStream(bytes))
+                          }
+                      }
                   }
                   return null
               }
@@ -195,6 +312,8 @@ jobs:
                   )
                   super.onCreate(savedInstanceState)
                   WindowCompat.setDecorFitsSystemWindows(window, false)
+
+                  tileCacheDir = File(filesDir, "tiles_cache").apply { mkdirs() }
 
                   if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                       ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 101)
@@ -222,101 +341,4 @@ jobs:
                       settings.apply {
                           javaScriptEnabled = true
                           domStorageEnabled = true
-                          databaseEnabled = true
-                          allowFileAccess = false
-                          allowContentAccess = false
-                          mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                          userAgentString = "Mozilla/5.0 (Linux; Android 16) Mobile Safari/537.36"
-                          setGeolocationEnabled(true)
-                          setSupportZoom(false)
-                          builtInZoomControls = false
-                          displayZoomControls = false
-                      }
-                      addJavascriptInterface(AndroidBridge(), "AndroidBridge")
-                      webViewClient = object : WebViewClient() {
-                          override fun shouldInterceptRequest(v: WebView, req: WebResourceRequest) = handleReq(loader, req)
-                          override fun shouldOverrideUrlLoading(v: WebView, req: WebResourceRequest): Boolean {
-                              val u = req.url.toString()
-                              if (u.startsWith("https://appassets.androidplatform.net/")) return false
-                              try { startActivity(Intent(Intent.ACTION_VIEW, req.url)) } catch (_: Exception) {}
-                              return true
-                          }
-                          override fun onPageFinished(v: WebView, u: String) { applyInsets() }
-                      }
-                      webChromeClient = object : WebChromeClient() {
-                          override fun onGeolocationPermissionsShowPrompt(o: String, cb: GeolocationPermissions.Callback) {
-                              cb.invoke(o, true, false)
-                          }
-                      }
-                  }
-                  setContentView(webView)
-
-                  ViewCompat.setOnApplyWindowInsetsListener(webView) { _, wi ->
-                      val ins = wi.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
-                      val d = resources.displayMetrics.density
-                      sTop = (ins.top / d).toInt().coerceAtLeast(28)
-                      sBot = (ins.bottom / d).toInt().coerceAtLeast(16)
-                      sLeft = (ins.left / d).toInt(); sRight = (ins.right / d).toInt()
-                      applyInsets()
-                      WindowInsetsCompat.CONSUMED
-                  }
-
-                  onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-                      override fun handleOnBackPressed() {
-                          webView.evaluateJavascript("(function(){const d=document.querySelector('.dialog-backdrop:not([hidden])');if(d){d.click();return true;}const p=document.querySelector('.leaflet-popup-close-button');if(p){p.click();return true;}return false;})()") { h ->
-                              if (h != "true") {
-                                  if (webView.canGoBack()) webView.goBack()
-                                  else { isEnabled = false; onBackPressedDispatcher.onBackPressed(); isEnabled = true }
-                              }
-                          }
-                      }
-                  })
-
-                  if (savedInstanceState == null) webView.loadUrl("https://appassets.androidplatform.net/assets/index.html")
-                  else webView.restoreState(savedInstanceState)
-              }
-
-              private fun applyInsets() {
-                  val s = "document.documentElement.style"
-                  webView.evaluateJavascript("$s.setProperty('--safe-top','${sTop}px');$s.setProperty('--safe-bottom','${sBot}px');$s.setProperty('--safe-left','${sLeft}px');$s.setProperty('--safe-right','${sRight}px');window.dispatchEvent(new Event('resize'));", null)
-              }
-
-              override fun onSaveInstanceState(outState: Bundle) {
-                  super.onSaveInstanceState(outState)
-                  webView.saveState(outState)
-              }
-
-              inner class AndroidBridge {
-                  @JavascriptInterface
-                  fun onThemeChanged(theme: String) {
-                      runOnUiThread {
-                          val light = theme != "dark"
-                          WindowCompat.getInsetsController(window, window.decorView).apply {
-                              isAppearanceLightStatusBars = light
-                              isAppearanceLightNavigationBars = light
-                          }
-                      }
-                  }
-              }
-          }'''
-
-          with open(f"{java}/MainActivity.kt", "w", encoding="utf-8") as f:
-              f.write(kt_code)
-
-      - name: 4. Setup Gradle 8.9
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
-      - name: 5. Compile Release APK
-        working-directory: ./android_build
-        run: |
-          gradle assembleRelease
-          cp app/build/outputs/apk/release/*.apk ../BalkanRoute-Android17.apk
-
-      - name: 6. Upload Ready APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: BalkanRoute-Android17-APK
-          path: BalkanRoute-Android17.apk
-          
+                          databaseEnabl
