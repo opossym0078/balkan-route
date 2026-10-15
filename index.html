@@ -3,15 +3,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>Балканы · 2–24 октября 2026</title>
-<script type="text/javascript" nonce="86df85186a994dad952d3f55d5b" src="//local.adguard.org?ts=1791911171298&amp;type=content-script&amp;dmn=claude.ai&amp;url=https%3A%2F%2Fclaude.ai%2Fdesign%2Fv1%2Fdesign%2Fprojects%2F820142fe-7628-44e2-9f80-a0e54b838aca%2Fdownload%3Fpath%3Duploads%252Findex.html&amp;app=com.android.chrome&amp;css=2&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="86df85186a994dad952d3f55d5b" src="//local.adguard.org?ts=1791911171298&amp;name=AdGuard%20Extra&amp;name=Disable%20AMP&amp;type=user-script"></script>
-<meta name="theme-color" content="#d0603f" media="(prefers-color-scheme: light)">
+<script type="text/javascript" nonce="86df85186a994dad952d3f55d5b" src="//local.adguard.org?ts=1792012340322&amp;type=content-script&amp;dmn=claude.ai&amp;url=https%3A%2F%2Fclaude.ai%2Fdesign%2Fv1%2Fdesign%2Fprojects%2F820142fe-7628-44e2-9f80-a0e54b838aca%2Fdownload%3Fpath%3Duploads%252Findex.html&amp;app=com.android.chrome&amp;css=2&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="86df85186a994dad952d3f55d5b" src="//local.adguard.org?ts=1792012340322&amp;name=AdGuard%20Extra&amp;name=Disable%20AMP&amp;type=user-script"></script>
+<meta name="theme-color" content="#efebe8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1c1917" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Балканы">
 <link rel="apple-touch-icon" href="icon-180.png">
 <script>(()=>{let t=null;try{t=localStorage.getItem('balk_theme')}catch(e){}const m=matchMedia('(prefers-color-scheme: dark)'),de=document.documentElement;
-const ap=()=>{de.dataset.theme=t||(m.matches?'dark':'light');document.querySelectorAll('meta[name=theme-color]').forEach(mt=>{const lm=/light/.test(mt.media);mt.content=t?(t==='dark'?'#1c1917':'#d0603f'):(lm?'#d0603f':'#1c1917')})};ap();
+const ap=()=>{de.dataset.theme=t||(m.matches?'dark':'light');document.querySelectorAll('meta[name=theme-color]').forEach(mt=>{const lm=/light/.test(mt.media);mt.content=t?(t==='dark'?'#1c1917':'#efebe8'):(lm?'#efebe8':'#1c1917')})};ap();
 window.__thm={get:()=>de.dataset.theme,set:v=>{t=v;try{localStorage.setItem('balk_theme',v)}catch(e){}ap();dispatchEvent(new Event('themechange'))}};
 const oc=()=>{if(!t){ap();dispatchEvent(new Event('themechange'))}};m.addEventListener?m.addEventListener('change',oc):m.addListener(oc);addEventListener('DOMContentLoaded',ap);})();</script>
 <style>/* Modernist — design-system tokens and component classes. This file is the source of truth for the system's look; retune it here and see readme.md. */
@@ -1311,6 +1311,15 @@ html,body{background:#efebe8}
 .sbody::-webkit-scrollbar{width:6px}.sbody::-webkit-scrollbar-thumb{background:rgba(46,32,26,.22);border-radius:3px}.sbody::-webkit-scrollbar-button{display:none}
 #sheet:not(.on){box-shadow:none}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#top,.card2,#pop,#gps,#sheet{background:rgba(255,255,255,.95)}.card2.leg{background:#0b3431}}
+/* android: ripple, tap, overscroll */
+@property --rr{syntax:'<length>';inherits:false;initial-value:0px}
+@property --ro{syntax:'<number>';inherits:false;initial-value:0}
+html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+button,.btn,.dy,.sg,.pl,.x{-webkit-user-select:none;user-select:none}
+.rp{background-image:radial-gradient(circle at var(--rx,50%) var(--ry,50%),color-mix(in srgb,currentColor calc(var(--ro)*14%),transparent) var(--rr),transparent calc(var(--rr) + 1px))!important;animation:rp .45s cubic-bezier(.2,0,0,1) forwards}
+@keyframes rp{0%{--rr:0px;--ro:1}70%{--ro:1}100%{--rr:var(--rm,160px);--ro:0}}
+button:active,.btn:active,.dy:active,.sg:active{transform:scale(.97);transition:transform .1s}
+@media (prefers-reduced-motion:reduce){.rp{animation:none!important;background-image:none!important}}
 </style>
 <style id="v2">
 html,body{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -2340,6 +2349,18 @@ map.on('dragstart',()=>{if(fol){fol=false;st()}});
 </script>
 <div id="a2hs" role="status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></svg><span id="a2t">Добавьте на экран «Домой», чтобы карта работала без сети</span><button id="a2b">Понятно</button></div>
 <script>
+(()=>{const SEL='button,.btn,.dy,.sg,.pl,.x,.tabs button';
+document.addEventListener('pointerdown',e=>{const el=e.target.closest(SEL);if(!el)return;const r=el.getBoundingClientRect();
+  el.classList.remove('rp');void el.offsetWidth;el.style.setProperty('--rx',(e.clientX-r.left)+'px');el.style.setProperty('--ry',(e.clientY-r.top)+'px');el.style.setProperty('--rm',Math.hypot(r.width,r.height)+'px');el.classList.add('rp')},{passive:true});
+document.addEventListener('animationend',e=>{if(e.animationName==='rp')e.target.classList.remove('rp')});
+const hz=n=>{try{navigator.vibrate&&navigator.vibrate(n)}catch(x){}};
+document.addEventListener('click',e=>{if(e.target.closest(SEL+',a,.card2'))hz(6)},true);
+const go=new URLSearchParams(location.search).get('go');
+if(go)addEventListener('load',()=>setTimeout(()=>{try{const k=TODAY&&DAYPLAN[TODAY]?TODAY:null;
+  if(go==='today'&&k)selectDay(k);
+  if(go==='book'){const bi=k?DAYPLAN[k].b:1;openSheet(bi,'days')}
+  history.replaceState(null,'',location.pathname)}catch(x){}},300));
+})();
 (()=>{const SWOK='serviceWorker' in navigator&&location.protocol==='https:'&&window.top===window;
 if(SWOK)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
