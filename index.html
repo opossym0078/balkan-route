@@ -1312,14 +1312,7 @@ html,body{background:#efebe8}
 #sheet:not(.on){box-shadow:none}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#top,.card2,#pop,#gps,#sheet{background:rgba(255,255,255,.95)}.card2.leg{background:#0b3431}}
 /* android: ripple, tap, overscroll */
-@property --rr{syntax:'<length>';inherits:false;initial-value:0px}
-@property --ro{syntax:'<number>';inherits:false;initial-value:0}
-html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 button,.btn,.dy,.sg,.pl,.x{-webkit-user-select:none;user-select:none}
-.rp{background-image:radial-gradient(circle at var(--rx,50%) var(--ry,50%),color-mix(in srgb,currentColor calc(var(--ro)*14%),transparent) var(--rr),transparent calc(var(--rr) + 1px))!important;animation:rp .45s cubic-bezier(.2,0,0,1) forwards}
-@keyframes rp{0%{--rr:0px;--ro:1}70%{--ro:1}100%{--rr:var(--rm,160px);--ro:0}}
-button:active,.btn:active,.dy:active,.sg:active{transform:scale(.97);transition:transform .1s}
-@media (prefers-reduced-motion:reduce){.rp{animation:none!important;background-image:none!important}}
 .leaflet-control-attribution{font-size:8px!important;padding:0 3px!important;background:transparent!important;opacity:.55}
 .leaflet-control-attribution a{color:inherit!important}
 </style>
@@ -2352,9 +2345,6 @@ map.on('dragstart',()=>{if(fol){fol=false;st()}});
 <div id="a2hs" role="status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></svg><span id="a2t">Добавьте на экран «Домой», чтобы карта работала без сети</span><button id="a2b">Понятно</button></div>
 <script>
 (()=>{const SEL='button,.btn,.dy,.sg,.pl,.x,.tabs button';
-document.addEventListener('pointerdown',e=>{const el=e.target.closest(SEL);if(!el)return;const r=el.getBoundingClientRect();
-  el.classList.remove('rp');void el.offsetWidth;el.style.setProperty('--rx',(e.clientX-r.left)+'px');el.style.setProperty('--ry',(e.clientY-r.top)+'px');el.style.setProperty('--rm',Math.hypot(r.width,r.height)+'px');el.classList.add('rp')},{passive:true});
-document.addEventListener('animationend',e=>{if(e.animationName==='rp')e.target.classList.remove('rp')});
 const hz=n=>{try{navigator.vibrate&&navigator.vibrate(n)}catch(x){}};
 document.addEventListener('click',e=>{if(e.target.closest(SEL+',a,.card2'))hz(6)},true);
 const go=new URLSearchParams(location.search).get('go');
