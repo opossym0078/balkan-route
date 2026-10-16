@@ -1933,7 +1933,7 @@ const map=L.map('map',{zoomControl:false,zoomSnap:.25,wheelPxPerZoomLevel:90}).s
  const Ld=BM.land.map(p=>L.polygon(p,{...o,weight:1,fillOpacity:1}).addTo(map)),Lk=BM.lakes.map(p=>L.polygon(p,{...o,stroke:false,fillOpacity:1}).addTo(map)),Rv=BM.rivers.map(([l,r])=>L.polyline(l,{...o,weight:r<=5?2:1.3}).addTo(map));
  window.paintBase=()=>{const d=DARK();map.getContainer().style.background=d?'#1b2024':'#dde2e5';Ld.forEach(p=>p.setStyle({color:d?'#3d3835':'#c9c5c4',fillColor:d?'#262220':'#f3f2f2'}));Lk.forEach(p=>p.setStyle({fillColor:d?'#1b2024':'#dde2e5'}));Rv.forEach(p=>p.setStyle({color:d?'#2a3439':'#c3ccd2'}))};paintBase();
  })();
-map.attributionControl.setPrefix(false);(()=>{const PL=[['https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'},'osm']],PD=PL;
+try{map.attributionControl&&map.attributionControl.setPrefix(false)}catch(e){};(()=>{const PL=[['https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'},'osm']],PD=PL;
  let P=null,k=0,tl=null;const use=i=>{if(tl)map.removeLayer(tl);k=i;let err=0,ok=0;tl=L.tileLayer(P[i][0],{...P[i][1],crossOrigin:'anonymous',maxZoom:18,keepBuffer:4,updateWhenZooming:false,errorTileUrl:'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='});
   tl.on('tileload',()=>ok++).on('tileerror',e=>{err++;if(err>=4&&err>ok*2&&k<P.length-1)use(k+1);});tl.addTo(map)};
  window.setTiles=()=>{if(P)return;P=PL;use(0)};window.curTile=()=>({url:P[k][0],st:P[k][2]});setTiles();})();
