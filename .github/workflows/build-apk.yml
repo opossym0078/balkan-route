@@ -1,0 +1,157 @@
+name: Build BalkanRoute Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 2. Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 3. Signing key (постоянный)
+        env:
+          KS_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > release.jks
+            echo "NEW_KEY=0" >> $GITHUB_ENV
+          else
+            keytool -genkeypair -v -keystore release.jks -alias balkan -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass balkan123 -keypass balkan123 -dname "CN=BalkanRoute"
+            base64 -w0 release.jks > KEYSTORE_B64.txt
+            echo "NEW_KEY=1" >> $GITHUB_ENV
+          fi
+          echo "KS_PATH=$PWD/release.jks" >> $GITHUB_ENV
+
+      - name: 4. Upload new key (только при первой сборке)
+        if: env.NEW_KEY == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: KEYSTORE_B64-add-to-secrets
+          path: KEYSTORE_B64.txt
+
+      - name: 5. Generate Android project
+        shell: python
+        run: |
+          import os, re, shutil
+          base = "android_build"
+          assets = f"{base}/app/src/main/assets"
+          java = f"{base}/app/src/main/java/com/balkanroute/app"
+          res_val = f"{base}/app/src/main/res/values"
+          res_drw = f"{base}/app/src/main/res/drawable"
+          res_mip = f"{base}/app/src/main/res/mipmap-anydpi-v26"
+          for d in [assets, java, res_val, res_drw, res_mip]:
+              os.makedirs(d, exist_ok=True)
+          skip = {"release.jks", "KEYSTORE_B64.txt"}
+          for item in os.listdir("."):
+              if item not in skip and os.path.isfile(item) and not item.startswith("."):
+                  shutil.copy2(item, os.path.join(assets, item))
+
+          # index.html: safe areas -> CSS vars from native insets
+          idx = f"{assets}/index.html"
+          html = open(idx, encoding="utf-8").read()
+          html = re.sub(r'<script[^>]*local\.adguard\.org[^>]*></script>', '', html)
+          for side, dflt in [("top","36px"),("bottom","20px"),("left","0px"),("right","0px")]:
+              html = re.sub(r'env\(\s*safe-area-inset-'+side+r'\s*(?:,[^)]+)?\)', f'var(--safe-{side}, {dflt})', html)
+          patch = '''<style id="android-bridge">
+          :root{--safe-top:36px;--safe-bottom:20px;--safe-left:0px;--safe-right:0px}
+          *{-webkit-tap-highlight-color:transparent} html,body{overscroll-behavior:none}
+          </style>
+          <script>
+          (function(){
+            var sync=function(){var t=window.__thm?window.__thm.get():document.documentElement.dataset.theme;
+              if(window.AndroidBridge)AndroidBridge.onThemeChanged(t||"light")};
+            addEventListener("themechange",sync);addEventListener("DOMContentLoaded",sync);
+          })();
+          </script>'''
+          html = html.replace("</head>", patch + "\n</head>", 1)
+          open(idx, "w", encoding="utf-8").write(html)
+
+          # sw.js: missing shell file must not break install
+          swp = f"{assets}/sw.js"
+          if os.path.exists(swp):
+              sw = open(swp, encoding="utf-8").read()
+              sw = sw.replace("c.addAll(SHELL)", "Promise.all(SHELL.map(u=>c.add(u).catch(()=>0)))")
+              open(swp, "w", encoding="utf-8").write(sw)
+
+          open(f"{res_drw}/ic_bg.xml","w").write('<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108"><path android:fillColor="#D0603F" android:pathData="M0,0h108v108h-108z"/><path android:fillColor="#B84324" android:pathData="M0,68 C36,56 72,80 108,64 L108,108 L0,108 Z"/></vector>')
+          open(f"{res_drw}/ic_fg.xml","w").write('<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108"><path android:fillColor="#F8F4F4" android:pathData="M24,72 L44,38 L58,60 L66,46 L84,72 Z"/><path android:strokeColor="#D0603F" android:strokeWidth="4.5" android:strokeLineCap="round" android:pathData="M44,73 Q53,62 47,54 Q42,47 52,40"/><path android:fillColor="#FFE0D9" android:pathData="M66,30 C61.5,30 58,33.5 58,38 C58,44 66,52 66,52 C66,52 74,44 74,38 C74,33.5 70.5,30 66,30 Z"/></vector>')
+          ic = '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@drawable/ic_bg"/><foreground android:drawable="@drawable/ic_fg"/><monochrome android:drawable="@drawable/ic_fg"/></adaptive-icon>'
+          open(f"{res_mip}/ic_launcher.xml","w").write(ic)
+          open(f"{res_mip}/ic_launcher_round.xml","w").write(ic)
+
+          open(f"{base}/settings.gradle.kts","w").write('pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\ndependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }\nrootProject.name = "BalkanRoute"\ninclude(":app")\n')
+          open(f"{base}/gradle.properties","w").write("android.useAndroidX=true\norg.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8\n")
+          open(f"{base}/build.gradle.kts","w").write('plugins {\n id("com.android.application") version "8.7.3" apply false\n id("org.jetbrains.kotlin.android") version "2.0.21" apply false\n}\n')
+          open(f"{base}/app/build.gradle.kts","w").write('''plugins {
+           id("com.android.application")
+           id("org.jetbrains.kotlin.android")
+          }
+          android {
+           namespace = "com.balkanroute.app"
+           compileSdk = 35
+           defaultConfig {
+            applicationId = "com.balkanroute.app"
+            minSdk = 29
+            targetSdk = 35
+            versionCode = 6
+            versionName = "1.6.0"
+           }
+           signingConfigs {
+            create("rel") {
+             storeFile = file(System.getenv("KS_PATH"))
+             storePassword = "balkan123"
+             keyAlias = "balkan"
+             keyPassword = "balkan123"
+            }
+           }
+           buildTypes {
+            release {
+             isMinifyEnabled = false
+             signingConfig = signingConfigs.getByName("rel")
+            }
+           }
+           compileOptions {
+            sourceCompatibility = JavaVersion.VERSION_17
+            targetCompatibility = JavaVersion.VERSION_17
+           }
+           kotlinOptions { jvmTarget = "17" }
+          }
+          dependencies {
+           implementation("androidx.core:core-ktx:1.15.0")
+           implementation("androidx.activity:activity-ktx:1.10.0")
+           implementation("androidx.webkit:webkit:1.12.1")
+          }
+          ''')
+          open(f"{res_val}/themes.xml","w").write('<resources><style name="Theme.BalkanRoute" parent="android:Theme.Material.NoActionBar"><item name="android:statusBarColor">@android:color/transparent</item><item name="android:navigationBarColor">@android:color/transparent</item><item name="android:enforceStatusBarContrast">false</item><item name="android:enforceNavigationBarContrast">false</item><item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item></style></resources>')
+          open(f"{base}/app/src/main/AndroidManifest.xml","w",encoding="utf-8").write('<manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/><uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/><uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/><application android:allowBackup="true" android:usesCleartextTraffic="true" android:hardwareAccelerated="true" android:enableOnBackInvokedCallback="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:label="Балканы" android:supportsRtl="true" android:theme="@style/Theme.BalkanRoute"><activity android:name=".MainActivity" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>')
+
+          kt = open(".github/MainActivity.kt", encoding="utf-8").read()
+          open(f"{java}/MainActivity.kt","w",encoding="utf-8").write(kt)
+
+      - name: 6. Setup Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: 7. Compile Release APK
+        working-directory: ./android_build
+        run: |
+          gradle assembleRelease
+          cp app/build/outputs/apk/release/*.apk ../BalkanRoute.apk
+
+      - name: 8. Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BalkanRoute-APK
+          path: BalkanRoute.apk
